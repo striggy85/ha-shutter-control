@@ -64,6 +64,15 @@ Ohne `entities` erkennt die Karte alle Gruppen automatisch (über die Status-Sen
 Integration). Die nötigen Daten liefert `sensor.<name>_status` als Attribute
 (`next_up`, `next_down`, `shade_forecast_start`, `shade_forecast_end`, …).
 
+Zusätzlich registriert die Integration einen Eintrag **„Rollläden" in der linken
+Seitenleiste** (Panel) mit derselben Übersicht – ganz ohne Dashboard-Konfiguration.
+
+### Sonnenschutz nur absenken
+In den Grundeinstellungen gibt es die Option **„Sonnenschutz nur absenken"** (Standard an):
+Steht ein Rollladen bereits tiefer als die Beschattungsposition (z. B. nachts geschlossen),
+fährt ihn die Beschattung **nicht** nach oben. Ausschalten = Beschattung fährt immer exakt
+auf die Beschattungsposition.
+
 ## Globale Vorgaben vs. Gruppen-Override
 Sensoren, Schwellen und die **Standardwerte** für Azimut, Elevation sowie Auf-/Zu-Zeiten &
 -Trigger werden **einmal** in den Grundeinstellungen der Integration gesetzt

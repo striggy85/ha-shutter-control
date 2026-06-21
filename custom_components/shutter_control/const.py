@@ -20,12 +20,15 @@ CONF_CLOUD_THRESHOLD = "cloud_threshold"
 CONF_TEMP_SENSOR = "temperature_sensor"
 CONF_TEMP_THRESHOLD = "temperature_threshold"
 CONF_UPDATE_INTERVAL = "update_interval"
+CONF_SHADE_ONLY_LOWER = "shade_only_lower"
 
 DEFAULT_SUN_ENTITY = "sun.sun"
 # Max. cloud cover (%) at which shading still happens (low clouds = sunny).
 DEFAULT_CLOUD_THRESHOLD = 40.0
 DEFAULT_TEMP_THRESHOLD = 22.0  # °C
 DEFAULT_UPDATE_INTERVAL = 60  # seconds
+# Only lower for shading, never raise a shutter that is already further down.
+DEFAULT_SHADE_ONLY_LOWER = True
 
 # ---------------------------------------------------------------------------
 # Per-cover config (subentry data)

@@ -38,6 +38,7 @@ from .const import (
     CONF_OPEN_POSITION,
     CONF_ROOM_TYPE,
     CONF_SHADE_ENABLED,
+    CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
     CONF_TEMP_SENSOR,
@@ -61,6 +62,7 @@ from .const import (
     DEFAULT_ELEVATION_MIN,
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
+    DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
     DEFAULT_TEMP_THRESHOLD,
@@ -200,6 +202,10 @@ def _global_schema(defaults: dict[str, Any]) -> vol.Schema:
             CONF_UPDATE_INTERVAL,
             default=defaults.get(CONF_UPDATE_INTERVAL, DEFAULT_UPDATE_INTERVAL),
         ): _num(15, 900, 5, "s"),
+        vol.Optional(
+            CONF_SHADE_ONLY_LOWER,
+            default=defaults.get(CONF_SHADE_ONLY_LOWER, DEFAULT_SHADE_ONLY_LOWER),
+        ): selector.BooleanSelector(),
     }
     # Inheritable defaults (overridable per group).
     _azimuth_fields(schema, defaults, glob=True)

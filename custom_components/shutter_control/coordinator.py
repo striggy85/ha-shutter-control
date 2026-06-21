@@ -54,6 +54,7 @@ from .const import (
     CONF_OPEN_POSITION,
     CONF_ROOM_TYPE,
     CONF_SHADE_ENABLED,
+    CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
     CONF_TEMP_SENSOR,
@@ -77,6 +78,7 @@ from .const import (
     DEFAULT_ELEVATION_MIN,
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
+    DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
     DEFAULT_TEMP_THRESHOLD,
@@ -455,13 +457,27 @@ class ShutterControlManager:
         )
 
         if should_shade and not cover.shading_active:
-            cover.shading_active = True
             shade_pos = (
                 closed_pos
                 if room_type == ROOM_SLEEPING
                 else int(cfg.get(CONF_SHADE_POSITION, DEFAULT_SHADE_POSITION))
             )
-            await self._apply(cover, shade_pos, MODE_SHADING)
+            only_lower = self.entry.options.get(
+                CONF_SHADE_ONLY_LOWER, DEFAULT_SHADE_ONLY_LOWER
+            )
+            max_pos = self._group_max_position(cover)
+            if (
+                only_lower
+                and max_pos is not None
+                and max_pos <= shade_pos + POSITION_TOLERANCE
+            ):
+                # Shutter is already at/below the shade position - never raise
+                # it for shading (and don't mark shading active, so the end of
+                # the shading period won't open it either).
+                cover.mode = MODE_IDLE
+            else:
+                cover.shading_active = True
+                await self._apply(cover, shade_pos, MODE_SHADING)
         elif not should_shade and cover.shading_active:
             cover.shading_active = False
             await self._apply(cover, open_pos, MODE_OPEN)
@@ -723,6 +739,22 @@ class ShutterControlManager:
                 continue
             any_known = True
         return any_known
+
+    def _group_max_position(self, cover: CoverState) -> int | None:
+        """Highest (most open) current position among the group's members."""
+        best: int | None = None
+        for entity_id in cover.entity_ids:
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            pos = state.attributes.get(ATTR_POSITION)
+            try:
+                pos = int(pos)
+            except (ValueError, TypeError):
+                continue
+            if best is None or pos > best:
+                best = pos
+        return best
 
     @callback
     def _notify(self) -> None:

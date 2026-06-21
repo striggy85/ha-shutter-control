@@ -243,11 +243,13 @@ class ShutterControlCard extends HTMLElement {
   }
 }
 
-customElements.define("shutter-control-card", ShutterControlCard);
-window.customCards = window.customCards || [];
-window.customCards.push({
-  type: "shutter-control-card",
-  name: "Shutter Control Card",
-  description: "Rollläden/Gruppen mit Fahrzeiten, Beschattungsvorschau und Steuerung.",
-});
-console.info("%c SHUTTER-CONTROL-CARD ", "background:#2d7ff9;color:#fff", "loaded");
+if (!customElements.get("shutter-control-card")) {
+  customElements.define("shutter-control-card", ShutterControlCard);
+  window.customCards = window.customCards || [];
+  window.customCards.push({
+    type: "shutter-control-card",
+    name: "Shutter Control Card",
+    description: "Rollläden/Gruppen mit Fahrzeiten, Beschattungsvorschau und Steuerung.",
+  });
+  console.info("%c SHUTTER-CONTROL-CARD ", "background:#2d7ff9;color:#fff", "loaded");
+}

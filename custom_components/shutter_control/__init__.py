@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
+from homeassistant.components import panel_custom
 from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
@@ -17,20 +18,39 @@ _LOGGER = logging.getLogger(__name__)
 
 type ShutterControlConfigEntry = ConfigEntry[ShutterControlManager]
 
-CARD_URL = "/shutter_control_frontend/shutter-control-card.js"
-CARD_VERSION = "0.5.0"
+FRONTEND_URL = "/shutter_control_frontend"
+CARD_URL = f"{FRONTEND_URL}/shutter-control-card.js"
+PANEL_URL = f"{FRONTEND_URL}/shutter-control-panel.js"
+PANEL_PATH = "shutter-control"
+FRONTEND_VERSION = "0.6.0"
 
 
-async def _async_register_card(hass: HomeAssistant) -> None:
-    """Serve the Lovelace card and load it on the frontend (once)."""
-    if hass.data.get(f"{DOMAIN}_card_registered"):
+async def _async_register_frontend(hass: HomeAssistant) -> None:
+    """Serve the card + panel, load the card and add the sidebar panel (once)."""
+    if hass.data.get(f"{DOMAIN}_frontend_registered"):
         return
-    hass.data[f"{DOMAIN}_card_registered"] = True
-    card_path = Path(__file__).parent / "www" / "shutter-control-card.js"
+    hass.data[f"{DOMAIN}_frontend_registered"] = True
+
+    www_dir = Path(__file__).parent / "www"
     await hass.http.async_register_static_paths(
-        [StaticPathConfig(CARD_URL, str(card_path), False)]
+        [StaticPathConfig(FRONTEND_URL, str(www_dir), False)]
     )
-    add_extra_js_url(hass, f"{CARD_URL}?v={CARD_VERSION}")
+    add_extra_js_url(hass, f"{CARD_URL}?v={FRONTEND_VERSION}")
+
+    try:
+        await panel_custom.async_register_panel(
+            hass,
+            frontend_url_path=PANEL_PATH,
+            webcomponent_name="shutter-control-panel",
+            module_url=f"{PANEL_URL}?v={FRONTEND_VERSION}",
+            sidebar_title="Rollläden",
+            sidebar_icon="mdi:window-shutter",
+            require_admin=False,
+            config={},
+        )
+    except ValueError:
+        # Panel already registered (e.g. after a reload) - ignore.
+        pass
 
 
 async def async_setup_entry(
@@ -42,7 +62,7 @@ async def async_setup_entry(
     entry.runtime_data = manager
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-    await _async_register_card(hass)
+    await _async_register_frontend(hass)
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
     return True
 

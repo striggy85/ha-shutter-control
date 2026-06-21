@@ -1,11 +1,11 @@
 {
   "domain": "shutter_control",
   "name": "Shutter Control",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "config_flow": true,
   "documentation": "https://github.com/striggy85/ha-shutter-control",
   "issue_tracker": "https://github.com/striggy85/ha-shutter-control/issues",
-  "dependencies": ["sun", "http", "frontend"],
+  "dependencies": ["sun", "http", "frontend", "panel_custom"],
   "codeowners": ["@striggy85"],
   "iot_class": "calculated",
   "integration_type": "hub"
