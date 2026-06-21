@@ -1,0 +1,136 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Shutter Control",
+        "description": "Globale Einstellungen. Einzelne Rollläden danach über \"Rollladen hinzufügen\" anlegen.",
+        "data": {
+          "sun_entity": "Sonnen-Entität",
+          "brightness_sensor": "Helligkeitssensor (Lux, optional)",
+          "brightness_threshold": "Helligkeitsschwelle für Beschattung",
+          "temperature_sensor": "Temperatursensor (optional)",
+          "temperature_threshold": "Temperaturschwelle für Beschattung",
+          "update_interval": "Auswerte-Intervall"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Shutter Control ist bereits eingerichtet."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Shutter-Control-Einstellungen",
+        "data": {
+          "sun_entity": "Sonnen-Entität",
+          "brightness_sensor": "Helligkeitssensor (Lux, optional)",
+          "brightness_threshold": "Helligkeitsschwelle für Beschattung",
+          "temperature_sensor": "Temperatursensor (optional)",
+          "temperature_threshold": "Temperaturschwelle für Beschattung",
+          "update_interval": "Auswerte-Intervall"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "cover": {
+      "title": "Rollladen",
+      "initiate_flow": {
+        "user": "Rollladen hinzufügen",
+        "reconfigure": "Rollladen bearbeiten"
+      },
+      "step": {
+        "user": {
+          "title": "Rollladen hinzufügen",
+          "data": {
+            "name": "Name",
+            "cover_entity": "Rollladen-Entität",
+            "room_type": "Raumtyp",
+            "shade_enabled": "Sonnenschutz aktivieren",
+            "azimuth_start": "Fassaden-Azimut von",
+            "azimuth_end": "Fassaden-Azimut bis",
+            "elevation_min": "Min. Sonnenhöhe",
+            "elevation_max": "Max. Sonnenhöhe",
+            "shade_position": "Beschattungs-Position",
+            "open_position": "Position offen",
+            "closed_position": "Position geschlossen",
+            "auto_up_enabled": "Auto-Auf morgens aktivieren",
+            "up_trigger": "Auslöser Auf",
+            "up_time": "Auf-Zeit (Wochentag, bei Auslöser = Uhrzeit)",
+            "up_time_weekend": "Auf-Zeit (Wochenende, bei Auslöser = Uhrzeit)",
+            "up_offset": "Versatz Auf zum Sonnenereignis",
+            "up_earliest": "Auf nicht vor (Sonnenereignis)",
+            "up_latest": "Auf nicht nach (Sonnenereignis)",
+            "auto_down_enabled": "Auto-Zu abends aktivieren",
+            "down_trigger": "Auslöser Zu",
+            "down_time": "Zu-Zeit (Wochentag, bei Auslöser = Uhrzeit)",
+            "down_time_weekend": "Zu-Zeit (Wochenende, bei Auslöser = Uhrzeit)",
+            "down_offset": "Versatz Zu zum Sonnenereignis",
+            "down_earliest": "Zu nicht vor (Sonnenereignis)",
+            "down_latest": "Zu nicht nach (Sonnenereignis)"
+          }
+        },
+        "reconfigure": {
+          "title": "Rollladen bearbeiten",
+          "data": {
+            "name": "Name",
+            "cover_entity": "Rollladen-Entität",
+            "room_type": "Raumtyp",
+            "shade_enabled": "Sonnenschutz aktivieren",
+            "azimuth_start": "Fassaden-Azimut von",
+            "azimuth_end": "Fassaden-Azimut bis",
+            "elevation_min": "Min. Sonnenhöhe",
+            "elevation_max": "Max. Sonnenhöhe",
+            "shade_position": "Beschattungs-Position",
+            "open_position": "Position offen",
+            "closed_position": "Position geschlossen",
+            "auto_up_enabled": "Auto-Auf morgens aktivieren",
+            "up_trigger": "Auslöser Auf",
+            "up_time": "Auf-Zeit (Wochentag, bei Auslöser = Uhrzeit)",
+            "up_time_weekend": "Auf-Zeit (Wochenende, bei Auslöser = Uhrzeit)",
+            "up_offset": "Versatz Auf zum Sonnenereignis",
+            "up_earliest": "Auf nicht vor (Sonnenereignis)",
+            "up_latest": "Auf nicht nach (Sonnenereignis)",
+            "auto_down_enabled": "Auto-Zu abends aktivieren",
+            "down_trigger": "Auslöser Zu",
+            "down_time": "Zu-Zeit (Wochentag, bei Auslöser = Uhrzeit)",
+            "down_time_weekend": "Zu-Zeit (Wochenende, bei Auslöser = Uhrzeit)",
+            "down_offset": "Versatz Zu zum Sonnenereignis",
+            "down_earliest": "Zu nicht vor (Sonnenereignis)",
+            "down_latest": "Zu nicht nach (Sonnenereignis)"
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "room_type": {
+      "options": {
+        "living": "Wohnraum",
+        "sleeping": "Schlafraum"
+      }
+    },
+    "trigger": {
+      "options": {
+        "time": "Feste Uhrzeit",
+        "sunrise": "Sonnenaufgang",
+        "sunset": "Sonnenuntergang"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "idle": "Bereit",
+          "open": "Offen",
+          "closed": "Geschlossen",
+          "shading": "Beschattung",
+          "manual": "Manuell übersteuert",
+          "disabled": "Deaktiviert"
+        }
+      }
+    }
+  }
+}

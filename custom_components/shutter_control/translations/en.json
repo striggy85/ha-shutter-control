@@ -1,0 +1,136 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Shutter Control",
+        "description": "Global settings. Add individual covers afterwards via \"Add cover\".",
+        "data": {
+          "sun_entity": "Sun entity",
+          "brightness_sensor": "Brightness sensor (illuminance, optional)",
+          "brightness_threshold": "Brightness threshold for shading",
+          "temperature_sensor": "Temperature sensor (optional)",
+          "temperature_threshold": "Temperature threshold for shading",
+          "update_interval": "Evaluation interval"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Shutter Control is already set up."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Shutter Control settings",
+        "data": {
+          "sun_entity": "Sun entity",
+          "brightness_sensor": "Brightness sensor (illuminance, optional)",
+          "brightness_threshold": "Brightness threshold for shading",
+          "temperature_sensor": "Temperature sensor (optional)",
+          "temperature_threshold": "Temperature threshold for shading",
+          "update_interval": "Evaluation interval"
+        }
+      }
+    }
+  },
+  "config_subentries": {
+    "cover": {
+      "title": "Cover",
+      "initiate_flow": {
+        "user": "Add cover",
+        "reconfigure": "Edit cover"
+      },
+      "step": {
+        "user": {
+          "title": "Add cover",
+          "data": {
+            "name": "Name",
+            "cover_entity": "Cover entity",
+            "room_type": "Room type",
+            "shade_enabled": "Enable sun shading",
+            "azimuth_start": "Facade azimuth from",
+            "azimuth_end": "Facade azimuth to",
+            "elevation_min": "Min. sun elevation",
+            "elevation_max": "Max. sun elevation",
+            "shade_position": "Shading position",
+            "open_position": "Open position",
+            "closed_position": "Closed position",
+            "auto_up_enabled": "Enable auto-up in the morning",
+            "up_trigger": "Up trigger",
+            "up_time": "Up time (weekday, when trigger = time)",
+            "up_time_weekend": "Up time (weekend, when trigger = time)",
+            "up_offset": "Up offset vs. sun event",
+            "up_earliest": "Up not before (sun event)",
+            "up_latest": "Up not after (sun event)",
+            "auto_down_enabled": "Enable auto-down in the evening",
+            "down_trigger": "Down trigger",
+            "down_time": "Down time (weekday, when trigger = time)",
+            "down_time_weekend": "Down time (weekend, when trigger = time)",
+            "down_offset": "Down offset vs. sun event",
+            "down_earliest": "Down not before (sun event)",
+            "down_latest": "Down not after (sun event)"
+          }
+        },
+        "reconfigure": {
+          "title": "Edit cover",
+          "data": {
+            "name": "Name",
+            "cover_entity": "Cover entity",
+            "room_type": "Room type",
+            "shade_enabled": "Enable sun shading",
+            "azimuth_start": "Facade azimuth from",
+            "azimuth_end": "Facade azimuth to",
+            "elevation_min": "Min. sun elevation",
+            "elevation_max": "Max. sun elevation",
+            "shade_position": "Shading position",
+            "open_position": "Open position",
+            "closed_position": "Closed position",
+            "auto_up_enabled": "Enable auto-up in the morning",
+            "up_trigger": "Up trigger",
+            "up_time": "Up time (weekday, when trigger = time)",
+            "up_time_weekend": "Up time (weekend, when trigger = time)",
+            "up_offset": "Up offset vs. sun event",
+            "up_earliest": "Up not before (sun event)",
+            "up_latest": "Up not after (sun event)",
+            "auto_down_enabled": "Enable auto-down in the evening",
+            "down_trigger": "Down trigger",
+            "down_time": "Down time (weekday, when trigger = time)",
+            "down_time_weekend": "Down time (weekend, when trigger = time)",
+            "down_offset": "Down offset vs. sun event",
+            "down_earliest": "Down not before (sun event)",
+            "down_latest": "Down not after (sun event)"
+          }
+        }
+      }
+    }
+  },
+  "selector": {
+    "room_type": {
+      "options": {
+        "living": "Living room",
+        "sleeping": "Bedroom"
+      }
+    },
+    "trigger": {
+      "options": {
+        "time": "Fixed time",
+        "sunrise": "Sunrise",
+        "sunset": "Sunset"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "state": {
+          "idle": "Idle",
+          "open": "Open",
+          "closed": "Closed",
+          "shading": "Shading",
+          "manual": "Manual override",
+          "disabled": "Disabled"
+        }
+      }
+    }
+  }
+}
