@@ -22,7 +22,7 @@ FRONTEND_URL = "/shutter_control_frontend"
 CARD_URL = f"{FRONTEND_URL}/shutter-control-card.js"
 PANEL_URL = f"{FRONTEND_URL}/shutter-control-panel.js"
 PANEL_PATH = "shutter-control"
-FRONTEND_VERSION = "0.7.0"
+FRONTEND_VERSION = "0.8.0"
 
 
 async def _async_register_frontend(hass: HomeAssistant) -> None:

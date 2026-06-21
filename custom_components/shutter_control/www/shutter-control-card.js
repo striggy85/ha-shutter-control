@@ -97,6 +97,8 @@ class ShutterControlCard extends HTMLElement {
           g.st.state,
           a.next_up,
           a.next_down,
+          a.next_action,
+          a.next_action_at,
           a.shade_forecast_start,
           a.shade_forecast_end,
           a.manual_override,
@@ -131,6 +133,18 @@ class ShutterControlCard extends HTMLElement {
     return "keine";
   }
 
+  _nextAction(a) {
+    const map = {
+      up: "Auf",
+      down: "Zu",
+      shading: "Beschattung",
+      shading_end: "Beschattung endet",
+    };
+    if (!a.next_action || !a.next_action_at) return "–";
+    const verb = map[a.next_action] || a.next_action;
+    return verb + " um " + this._fmt(a.next_action_at, true);
+  }
+
   _svc(domain, service, data) {
     this._hass.callService(domain, service, data);
   }
@@ -157,6 +171,7 @@ class ShutterControlCard extends HTMLElement {
             <div class="name">${g.name}</div>
             <span class="badge" style="background:${s.color}">${s.label}</span>
           </div>
+          <div class="next"><ha-icon icon="mdi:clock-fast"></ha-icon> Nächste Aktion: <b>${this._nextAction(a)}</b></div>
           <div class="info">
             <div><ha-icon icon="mdi:weather-sunset-up"></ha-icon> ${this._fmt(a.next_up, true)}</div>
             <div><ha-icon icon="mdi:weather-sunset-down"></ha-icon> ${this._fmt(a.next_down, true)}</div>
@@ -188,8 +203,11 @@ class ShutterControlCard extends HTMLElement {
         .head { display: flex; align-items: center; justify-content: space-between; }
         .name { font-weight: 500; }
         .badge { color: #fff; border-radius: 12px; padding: 2px 10px; font-size: .8em; }
+        .next { margin: 6px 0 2px; font-size: .95em; color: var(--primary-text-color); }
+        .next ha-icon { --mdc-icon-size: 18px; vertical-align: -4px; color: var(--primary-color); }
+        .next b { font-weight: 500; }
         .info { display: flex; flex-wrap: wrap; gap: 14px; color: var(--secondary-text-color);
-                font-size: .9em; margin: 6px 0 8px; }
+                font-size: .9em; margin: 4px 0 8px; }
         .info ha-icon { --mdc-icon-size: 18px; vertical-align: -4px; }
         .ctl { display: flex; align-items: center; gap: 6px; }
         .ctl .spacer { flex: 1; }

@@ -189,6 +189,10 @@ class CoverState:
     shade_end: datetime | None = None
     _shade_pred_date: object | None = None  # date the prediction was computed for
 
+    # Soonest upcoming action (for the overview): label + time.
+    next_action: str | None = None  # up | down | shading | shading_end
+    next_action_at: datetime | None = None
+
     # Covers resolved from explicit list + selected areas/floors.
     resolved_entities: list[str] = field(default_factory=list)
 
@@ -611,6 +615,29 @@ class ShutterControlManager:
         else:
             cover.shade_start = cover.shade_end = None
             cover._shade_pred_date = today
+
+        # Soonest upcoming action across up / down / predicted shading.
+        candidates: list[tuple[datetime, str]] = []
+        if cover.next_up:
+            candidates.append((cover.next_up, "up"))
+        if cover.next_down:
+            candidates.append((cover.next_down, "down"))
+        if (
+            cover.shade_start
+            and cover.shade_start > now
+            and not cover.shading_active
+        ):
+            candidates.append((cover.shade_start, "shading"))
+        if cover.shading_active and cover.shade_end and cover.shade_end > now:
+            candidates.append((cover.shade_end, "shading_end"))
+
+        candidates = [(t, lab) for (t, lab) in candidates if t and t > now]
+        if candidates:
+            candidates.sort(key=lambda c: c[0])
+            cover.next_action_at, cover.next_action = candidates[0]
+        else:
+            cover.next_action_at = None
+            cover.next_action = None
 
     def _predict_shading(
         self,

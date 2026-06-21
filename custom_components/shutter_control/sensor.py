@@ -106,6 +106,8 @@ class ShutterStatusSensor(SensorEntity):
             "room_type": cfg.get(CONF_ROOM_TYPE),
             "next_up": cover.next_up,
             "next_down": cover.next_down,
+            "next_action": cover.next_action,
+            "next_action_at": cover.next_action_at,
             "shade_forecast_start": cover.shade_start,
             "shade_forecast_end": cover.shade_end,
             "auto_up_enabled": cfg.get(CONF_AUTO_UP_ENABLED, True),
