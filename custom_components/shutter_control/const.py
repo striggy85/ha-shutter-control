@@ -35,6 +35,8 @@ DEFAULT_SHADE_ONLY_LOWER = True
 # ---------------------------------------------------------------------------
 CONF_NAME = "name"
 CONF_COVER_ENTITY = "cover_entity"
+CONF_AREAS = "areas"
+CONF_FLOORS = "floors"
 CONF_ROOM_TYPE = "room_type"
 
 CONF_SHADE_ENABLED = "shade_enabled"

@@ -24,6 +24,11 @@ from homeassistant.const import (
     SERVICE_SET_COVER_POSITION,
 )
 from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import (
+    area_registry as ar,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
     async_track_state_change_event,
@@ -36,9 +41,11 @@ from .const import (
     COMMAND_IGNORE_WINDOW,
     CONF_AUTO_DOWN_ENABLED,
     CONF_AUTO_UP_ENABLED,
+    CONF_AREAS,
     CONF_AZIMUTH_END,
     CONF_AZIMUTH_START,
     CONF_CLOSED_POSITION,
+    CONF_FLOORS,
     CONF_CLOUD_SENSOR,
     CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
@@ -182,19 +189,27 @@ class CoverState:
     shade_end: datetime | None = None
     _shade_pred_date: object | None = None  # date the prediction was computed for
 
+    # Covers resolved from explicit list + selected areas/floors.
+    resolved_entities: list[str] = field(default_factory=list)
+
     @property
     def name(self) -> str:
         return self.config.get(CONF_NAME) or self.subentry_id
 
     @property
-    def entity_ids(self) -> list[str]:
-        """The cover entities controlled by this group (always a list)."""
+    def explicit_entities(self) -> list[str]:
+        """Cover entities listed directly in the config (always a list)."""
         value = self.config.get(CONF_COVER_ENTITY)
         if value is None:
             return []
         if isinstance(value, str):
             return [value]
         return list(value)
+
+    @property
+    def entity_ids(self) -> list[str]:
+        """All controlled cover entities (explicit + resolved areas/floors)."""
+        return self.resolved_entities or self.explicit_entities
 
 
 class ShutterControlManager:
@@ -213,9 +228,9 @@ class ShutterControlManager:
         for subentry_id, subentry in self.entry.subentries.items():
             if subentry.subentry_type != "cover":
                 continue
-            self.covers[subentry_id] = CoverState(
-                subentry_id=subentry_id, config=dict(subentry.data)
-            )
+            cover = CoverState(subentry_id=subentry_id, config=dict(subentry.data))
+            cover.resolved_entities = self._resolve_targets(cover)
+            self.covers[subentry_id] = cover
 
         interval = timedelta(
             seconds=self.entry.options.get(
@@ -376,6 +391,9 @@ class ShutterControlManager:
         cloud = self._read_cloud()
         temperature = self._read_float(self._temp_sensor)
         for cover in self.covers.values():
+            # Re-resolve area/floor membership so covers added later are picked up.
+            if cover.config.get(CONF_AREAS) or cover.config.get(CONF_FLOORS):
+                cover.resolved_entities = self._resolve_targets(cover)
             try:
                 await self._evaluate_cover(
                     cover, now, azimuth, elevation, cloud, temperature
@@ -739,6 +757,34 @@ class ShutterControlManager:
                 continue
             any_known = True
         return any_known
+
+    def _resolve_targets(self, cover: CoverState) -> list[str]:
+        """Resolve the cover entities from explicit list + areas + floors."""
+        cfg = cover.config
+        ids: set[str] = set(cover.explicit_entities)
+
+        areas: set[str] = set(cfg.get(CONF_AREAS) or [])
+        floors = cfg.get(CONF_FLOORS) or []
+        if floors:
+            area_reg = ar.async_get(self.hass)
+            for area in area_reg.async_list_areas():
+                if area.floor_id in floors:
+                    areas.add(area.id)
+
+        if areas:
+            ent_reg = er.async_get(self.hass)
+            dev_reg = dr.async_get(self.hass)
+            for entry in ent_reg.entities.values():
+                if entry.domain != COVER_DOMAIN:
+                    continue
+                area_id = entry.area_id
+                if area_id is None and entry.device_id:
+                    device = dev_reg.async_get(entry.device_id)
+                    area_id = device.area_id if device else None
+                if area_id in areas:
+                    ids.add(entry.entity_id)
+
+        return sorted(ids)
 
     def _group_max_position(self, cover: CoverState) -> int | None:
         """Highest (most open) current position among the group's members."""

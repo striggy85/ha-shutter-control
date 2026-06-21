@@ -74,12 +74,17 @@
         "user": "Zimmer / Gruppe hinzufügen",
         "reconfigure": "Zimmer / Gruppe bearbeiten"
       },
+      "error": {
+        "no_target": "Mindestens einen Rollladen, Bereich oder Geschoss auswählen."
+      },
       "step": {
         "user": {
           "title": "Zimmer / Gruppe hinzufügen",
           "data": {
             "name": "Name (Zimmer / Gruppe)",
-            "cover_entity": "Rollläden (einer oder mehrere)",
+            "cover_entity": "Rollläden (optional)",
+            "areas": "Bereiche (alle Rollläden darin)",
+            "floors": "Geschosse (alle Rollläden darin)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
             "azimuth_start": "Fassaden-Azimut von (leer = global)",
@@ -109,7 +114,9 @@
           "title": "Zimmer / Gruppe bearbeiten",
           "data": {
             "name": "Name (Zimmer / Gruppe)",
-            "cover_entity": "Rollläden (einer oder mehrere)",
+            "cover_entity": "Rollläden (optional)",
+            "areas": "Bereiche (alle Rollläden darin)",
+            "floors": "Geschosse (alle Rollläden darin)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
             "azimuth_start": "Fassaden-Azimut von (leer = global)",

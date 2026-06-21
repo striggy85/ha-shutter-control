@@ -74,12 +74,17 @@
         "user": "Add room / group",
         "reconfigure": "Edit room / group"
       },
+      "error": {
+        "no_target": "Select at least one cover, area or floor."
+      },
       "step": {
         "user": {
           "title": "Add room / group",
           "data": {
             "name": "Name (room / group)",
-            "cover_entity": "Covers (one or more)",
+            "cover_entity": "Covers (optional)",
+            "areas": "Areas (all covers in them)",
+            "floors": "Floors (all covers in them)",
             "room_type": "Room type",
             "shade_enabled": "Enable sun shading",
             "azimuth_start": "Facade azimuth from (empty = global)",
@@ -109,7 +114,9 @@
           "title": "Edit room / group",
           "data": {
             "name": "Name (room / group)",
-            "cover_entity": "Covers (one or more)",
+            "cover_entity": "Covers (optional)",
+            "areas": "Areas (all covers in them)",
+            "floors": "Floors (all covers in them)",
             "room_type": "Room type",
             "shade_enabled": "Enable sun shading",
             "azimuth_start": "Facade azimuth from (empty = global)",

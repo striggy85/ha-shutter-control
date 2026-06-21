@@ -20,10 +20,12 @@ from homeassistant.helpers import selector
 from .const import (
     CONF_AUTO_DOWN_ENABLED,
     CONF_AUTO_UP_ENABLED,
+    CONF_AREAS,
     CONF_AZIMUTH_END,
     CONF_AZIMUTH_START,
     CONF_CLOSED_POSITION,
     CONF_CLOUD_SENSOR,
+    CONF_FLOORS,
     CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
     CONF_DOWN_EARLIEST,
@@ -234,12 +236,20 @@ def _cover_schema(defaults: dict[str, Any]) -> vol.Schema:
 
     schema: dict = {
         vol.Required(CONF_NAME, default=d(CONF_NAME, "")): selector.TextSelector(),
-        vol.Required(
+        vol.Optional(
             CONF_COVER_ENTITY,
             description={"suggested_value": covers_default},
         ): selector.EntitySelector(
             selector.EntitySelectorConfig(domain="cover", multiple=True)
         ),
+        vol.Optional(
+            CONF_AREAS,
+            description={"suggested_value": defaults.get(CONF_AREAS)},
+        ): selector.AreaSelector(selector.AreaSelectorConfig(multiple=True)),
+        vol.Optional(
+            CONF_FLOORS,
+            description={"suggested_value": defaults.get(CONF_FLOORS)},
+        ): selector.FloorSelector(selector.FloorSelectorConfig(multiple=True)),
         vol.Required(
             CONF_ROOM_TYPE, default=d(CONF_ROOM_TYPE, DEFAULT_ROOM_TYPE)
         ): selector.SelectSelector(
@@ -336,29 +346,45 @@ class ShutterControlOptionsFlow(OptionsFlow):
 class CoverSubentryFlow(ConfigSubentryFlow):
     """Add / reconfigure a managed cover."""
 
+    @staticmethod
+    def _has_target(user_input: dict[str, Any]) -> bool:
+        """At least one of covers / areas / floors must be selected."""
+        return bool(
+            user_input.get(CONF_COVER_ENTITY)
+            or user_input.get(CONF_AREAS)
+            or user_input.get(CONF_FLOORS)
+        )
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_create_entry(
-                title=user_input[CONF_NAME], data=user_input
-            )
+            if self._has_target(user_input):
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME], data=user_input
+                )
+            errors["base"] = "no_target"
         return self.async_show_form(
-            step_id="user", data_schema=_cover_schema({})
+            step_id="user", data_schema=_cover_schema(user_input or {}), errors=errors
         )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
         subentry = self._get_reconfigure_subentry()
+        errors: dict[str, str] = {}
         if user_input is not None:
-            return self.async_update_and_abort(
-                self._get_entry(),
-                subentry,
-                title=user_input[CONF_NAME],
-                data=user_input,
-            )
+            if self._has_target(user_input):
+                return self.async_update_and_abort(
+                    self._get_entry(),
+                    subentry,
+                    title=user_input[CONF_NAME],
+                    data=user_input,
+                )
+            errors["base"] = "no_target"
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=_cover_schema(dict(subentry.data)),
+            data_schema=_cover_schema(user_input or dict(subentry.data)),
+            errors=errors,
         )

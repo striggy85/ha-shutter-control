@@ -33,8 +33,9 @@ Home Assistant neu starten.
 1. *Einstellungen → Geräte & Dienste → Integration hinzufügen → „Shutter Control"*.
 2. Globale Einstellungen (Sonnen-Entität `sun.sun`, optional Bewölkungs-/Temperatursensor,
    Schwellen, Auswerte-Intervall).
-3. Auf der Integrationskachel **„Zimmer / Gruppe hinzufügen"** – Namen vergeben und
-   **einen oder mehrere** Rollläden auswählen, die diese Gruppe gemeinsam steuert.
+3. Auf der Integrationskachel **„Zimmer / Gruppe hinzufügen"** – Namen vergeben und das
+   Ziel wählen: **einzelne Rollläden** und/oder ganze **HA-Bereiche** bzw. **Geschosse**
+   (dann werden alle `cover.*` darin automatisch gesteuert – auch später hinzugefügte).
 
 Je Zimmer/Gruppe entstehen zwei Entitäten:
 - `switch.<name>_automatic` – Automatik der Gruppe an/aus.
