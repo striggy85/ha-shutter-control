@@ -3,7 +3,7 @@
 This module ports the essential behaviour of the ioBroker ``shuttercontrol``
 adapter to Home Assistant:
 
-* Sun-based shading per facade (azimuth window, elevation window, brightness /
+* Sun-based shading per facade (azimuth window, elevation window, cloud-cover /
   temperature thresholds).
 * Automatic up in the morning / down in the evening (separate week / weekend
   times).
@@ -37,9 +37,9 @@ from .const import (
     CONF_AUTO_UP_ENABLED,
     CONF_AZIMUTH_END,
     CONF_AZIMUTH_START,
-    CONF_BRIGHTNESS_SENSOR,
-    CONF_BRIGHTNESS_THRESHOLD,
     CONF_CLOSED_POSITION,
+    CONF_CLOUD_SENSOR,
+    CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
@@ -66,8 +66,8 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_AZIMUTH_END,
     DEFAULT_AZIMUTH_START,
-    DEFAULT_BRIGHTNESS_THRESHOLD,
     DEFAULT_CLOSED_POSITION,
+    DEFAULT_CLOUD_THRESHOLD,
     DEFAULT_DOWN_OFFSET,
     DEFAULT_DOWN_TIME,
     DEFAULT_DOWN_TIME_WEEKEND,
@@ -218,7 +218,7 @@ class ShutterControlManager:
 
         # React immediately to sun / sensor / cover changes.
         tracked = {self._sun_entity}
-        if (sensor := self._brightness_sensor) is not None:
+        if (sensor := self._cloud_sensor) is not None:
             tracked.add(sensor)
         if (sensor := self._temp_sensor) is not None:
             tracked.add(sensor)
@@ -246,8 +246,8 @@ class ShutterControlManager:
         return self.entry.options.get(CONF_SUN_ENTITY, DEFAULT_SUN_ENTITY)
 
     @property
-    def _brightness_sensor(self) -> str | None:
-        return self.entry.options.get(CONF_BRIGHTNESS_SENSOR)
+    def _cloud_sensor(self) -> str | None:
+        return self.entry.options.get(CONF_CLOUD_SENSOR)
 
     @property
     def _temp_sensor(self) -> str | None:
@@ -286,6 +286,24 @@ class ShutterControlManager:
             return float(state.state)
         except (ValueError, TypeError):
             return None
+
+    def _read_cloud(self) -> float | None:
+        """Read cloud cover (%) from the configured sensor or weather entity."""
+        entity_id = self._cloud_sensor
+        if not entity_id:
+            return None
+        # Weather entities expose cloud cover as the ``cloud_coverage`` attribute
+        # rather than as the (textual) state.
+        if entity_id.startswith("weather."):
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                return None
+            value = state.attributes.get("cloud_coverage")
+            try:
+                return float(value) if value is not None else None
+            except (ValueError, TypeError):
+                return None
+        return self._read_float(entity_id)
 
     # --------------------------------------------------------- event handlers
     @callback
@@ -345,12 +363,12 @@ class ShutterControlManager:
     async def _async_evaluate_all(self) -> None:
         now = dt_util.now()  # local time, tz-aware
         azimuth, elevation = self._sun_attrs()
-        brightness = self._read_float(self._brightness_sensor)
+        cloud = self._read_cloud()
         temperature = self._read_float(self._temp_sensor)
         for cover in self.covers.values():
             try:
                 await self._evaluate_cover(
-                    cover, now, azimuth, elevation, brightness, temperature
+                    cover, now, azimuth, elevation, cloud, temperature
                 )
             except Exception:  # noqa: BLE001 - never let one cover kill the loop
                 _LOGGER.exception("Error evaluating cover %s", cover.name)
@@ -362,7 +380,7 @@ class ShutterControlManager:
         now: datetime,
         azimuth: float | None,
         elevation: float | None,
-        brightness: float | None,
+        cloud: float | None,
         temperature: float | None,
     ) -> None:
         cfg = cover.config
@@ -449,7 +467,7 @@ class ShutterControlManager:
             return
 
         should_shade = self._should_shade(
-            cfg, azimuth, elevation, brightness, temperature
+            cfg, azimuth, elevation, cloud, temperature
         )
 
         if should_shade and not cover.shading_active:
@@ -507,7 +525,7 @@ class ShutterControlManager:
         cfg: dict,
         azimuth: float | None,
         elevation: float | None,
-        brightness: float | None,
+        cloud: float | None,
         temperature: float | None,
     ) -> bool:
         if azimuth is None or elevation is None:
@@ -523,11 +541,12 @@ class ShutterControlManager:
         if not (el_min <= elevation <= el_max):
             return False
 
-        # Brightness gate (only if a sensor is configured).
+        # Cloud-cover gate (only if a sensor is configured): shade only when the
+        # sky is clear enough, i.e. cloud cover at or below the threshold.
         threshold = self.entry.options.get(
-            CONF_BRIGHTNESS_THRESHOLD, DEFAULT_BRIGHTNESS_THRESHOLD
+            CONF_CLOUD_THRESHOLD, DEFAULT_CLOUD_THRESHOLD
         )
-        if brightness is not None and brightness < threshold:
+        if cloud is not None and cloud > threshold:
             return False
 
         # Temperature gate (only if a sensor is configured).

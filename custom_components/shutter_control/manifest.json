@@ -1,7 +1,7 @@
 {
   "domain": "shutter_control",
   "name": "Shutter Control",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "config_flow": true,
   "documentation": "https://github.com/striggy85/ha-shutter-control",
   "issue_tracker": "https://github.com/striggy85/ha-shutter-control/issues",

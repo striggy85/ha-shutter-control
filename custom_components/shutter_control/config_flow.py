@@ -22,9 +22,9 @@ from .const import (
     CONF_AUTO_UP_ENABLED,
     CONF_AZIMUTH_END,
     CONF_AZIMUTH_START,
-    CONF_BRIGHTNESS_SENSOR,
-    CONF_BRIGHTNESS_THRESHOLD,
     CONF_CLOSED_POSITION,
+    CONF_CLOUD_SENSOR,
+    CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
@@ -51,8 +51,8 @@ from .const import (
     CONF_UPDATE_INTERVAL,
     DEFAULT_AZIMUTH_END,
     DEFAULT_AZIMUTH_START,
-    DEFAULT_BRIGHTNESS_THRESHOLD,
     DEFAULT_CLOSED_POSITION,
+    DEFAULT_CLOUD_THRESHOLD,
     DEFAULT_DOWN_OFFSET,
     DEFAULT_DOWN_TIME,
     DEFAULT_DOWN_TIME_WEEKEND,
@@ -179,15 +179,15 @@ def _global_schema(defaults: dict[str, Any]) -> vol.Schema:
             default=defaults.get(CONF_SUN_ENTITY, DEFAULT_SUN_ENTITY),
         ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sun")),
         vol.Optional(
-            CONF_BRIGHTNESS_SENSOR,
-            description={"suggested_value": defaults.get(CONF_BRIGHTNESS_SENSOR)},
-        ): selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor")),
+            CONF_CLOUD_SENSOR,
+            description={"suggested_value": defaults.get(CONF_CLOUD_SENSOR)},
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain=["sensor", "weather"])
+        ),
         vol.Optional(
-            CONF_BRIGHTNESS_THRESHOLD,
-            default=defaults.get(
-                CONF_BRIGHTNESS_THRESHOLD, DEFAULT_BRIGHTNESS_THRESHOLD
-            ),
-        ): _num(0, 150000, 500, "lx"),
+            CONF_CLOUD_THRESHOLD,
+            default=defaults.get(CONF_CLOUD_THRESHOLD, DEFAULT_CLOUD_THRESHOLD),
+        ): _num(0, 100, 1, "%"),
         vol.Optional(
             CONF_TEMP_SENSOR,
             description={"suggested_value": defaults.get(CONF_TEMP_SENSOR)},

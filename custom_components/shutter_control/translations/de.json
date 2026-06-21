@@ -6,8 +6,8 @@
         "description": "Globale Einstellungen und Vorgaben. Zimmer/Gruppen danach anlegen; deren Azimut-, Elevation- und Zeit-Felder erben diese Vorgaben, solange sie leer bleiben.",
         "data": {
           "sun_entity": "Sonnen-Entität",
-          "brightness_sensor": "Helligkeitssensor (Lux, optional)",
-          "brightness_threshold": "Helligkeitsschwelle für Beschattung",
+          "cloud_sensor": "Bewölkungssensor (%, optional)",
+          "cloud_threshold": "Max. Bewölkung für Beschattung",
           "temperature_sensor": "Temperatursensor (optional)",
           "temperature_threshold": "Temperaturschwelle für Beschattung",
           "update_interval": "Auswerte-Intervall",
@@ -40,8 +40,8 @@
         "title": "Shutter-Control-Einstellungen",
         "data": {
           "sun_entity": "Sonnen-Entität",
-          "brightness_sensor": "Helligkeitssensor (Lux, optional)",
-          "brightness_threshold": "Helligkeitsschwelle für Beschattung",
+          "cloud_sensor": "Bewölkungssensor (%, optional)",
+          "cloud_threshold": "Max. Bewölkung für Beschattung",
           "temperature_sensor": "Temperatursensor (optional)",
           "temperature_threshold": "Temperaturschwelle für Beschattung",
           "update_interval": "Auswerte-Intervall",

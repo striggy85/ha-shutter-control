@@ -15,14 +15,15 @@ SIGNAL_UPDATE = "shutter_control_update_{entry_id}"
 # Global config (config entry data / options)
 # ---------------------------------------------------------------------------
 CONF_SUN_ENTITY = "sun_entity"
-CONF_BRIGHTNESS_SENSOR = "brightness_sensor"
-CONF_BRIGHTNESS_THRESHOLD = "brightness_threshold"
+CONF_CLOUD_SENSOR = "cloud_sensor"
+CONF_CLOUD_THRESHOLD = "cloud_threshold"
 CONF_TEMP_SENSOR = "temperature_sensor"
 CONF_TEMP_THRESHOLD = "temperature_threshold"
 CONF_UPDATE_INTERVAL = "update_interval"
 
 DEFAULT_SUN_ENTITY = "sun.sun"
-DEFAULT_BRIGHTNESS_THRESHOLD = 35000.0  # lux
+# Max. cloud cover (%) at which shading still happens (low clouds = sunny).
+DEFAULT_CLOUD_THRESHOLD = 40.0
 DEFAULT_TEMP_THRESHOLD = 22.0  # °C
 DEFAULT_UPDATE_INTERVAL = 60  # seconds
 

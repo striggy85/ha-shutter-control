@@ -5,7 +5,8 @@ Eine Custom Integration, die die Kernfunktionen des ioBroker-Adapters
 für Home Assistant nachbildet:
 
 - **Sonnenschutz / Beschattung** pro Fassade – Azimut-Fenster, Sonnenhöhe-Fenster,
-  optionale Helligkeits- und Temperaturschwelle.
+  optionale **Bewölkungs-** (%) und Temperaturschwelle (beschattet nur bei niedriger
+  Bewölkung = klarem Himmel).
 - **Auto-Auf morgens / Auto-Zu abends** – getrennte Zeiten für Wochentag und Wochenende.
 - **Wohn- vs. Schlafraum-Logik** – Schlafräume fahren bei Beschattung/abends komplett zu,
   Wohnräume nur auf die Beschattungs-Position.
@@ -30,7 +31,7 @@ Home Assistant neu starten.
 
 ## Einrichtung
 1. *Einstellungen → Geräte & Dienste → Integration hinzufügen → „Shutter Control"*.
-2. Globale Einstellungen (Sonnen-Entität `sun.sun`, optional Helligkeits-/Temperatursensor,
+2. Globale Einstellungen (Sonnen-Entität `sun.sun`, optional Bewölkungs-/Temperatursensor,
    Schwellen, Auswerte-Intervall).
 3. Auf der Integrationskachel **„Zimmer / Gruppe hinzufügen"** – Namen vergeben und
    **einen oder mehrere** Rollläden auswählen, die diese Gruppe gemeinsam steuert.
@@ -67,9 +68,9 @@ Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):
    Gleiche Auslöser-Optionen (Standard: Sonnenuntergang oder feste Uhrzeit).
    Beide Ereignisse setzen eine manuelle Übersteuerung zurück.
 3. **Beschattung** (nur tagsüber zwischen Auf- und Zu-Zeit): Wenn Sonnen-Azimut im
-   Fassadenfenster, Sonnenhöhe zwischen min/max und – falls Sensoren gesetzt – Helligkeit
-   bzw. Temperatur über Schwelle → Beschattungs-Position (Schlafraum: komplett zu).
-   Ende der Bedingung → wieder „offen".
+   Fassadenfenster, Sonnenhöhe zwischen min/max und – falls Sensoren gesetzt – Bewölkung
+   **unter** der Schwelle (klarer Himmel) sowie Temperatur über Schwelle →
+   Beschattungs-Position (Schlafraum: komplett zu). Ende der Bedingung → wieder „offen".
 4. **Manuell**: Ändert sich die Rollladenposition außerhalb eines eigenen Stellbefehls,
    wird die Automatik bis zum nächsten Auf-/Zu-Ereignis pausiert.
 

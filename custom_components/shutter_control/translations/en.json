@@ -6,8 +6,8 @@
         "description": "Global settings and defaults. Add rooms/groups afterwards; their azimuth, elevation and timing fields inherit these defaults unless overridden.",
         "data": {
           "sun_entity": "Sun entity",
-          "brightness_sensor": "Brightness sensor (illuminance, optional)",
-          "brightness_threshold": "Brightness threshold for shading",
+          "cloud_sensor": "Cloud cover sensor (%, optional)",
+          "cloud_threshold": "Max. cloud cover for shading",
           "temperature_sensor": "Temperature sensor (optional)",
           "temperature_threshold": "Temperature threshold for shading",
           "update_interval": "Evaluation interval",
@@ -40,8 +40,8 @@
         "title": "Shutter Control settings",
         "data": {
           "sun_entity": "Sun entity",
-          "brightness_sensor": "Brightness sensor (illuminance, optional)",
-          "brightness_threshold": "Brightness threshold for shading",
+          "cloud_sensor": "Cloud cover sensor (%, optional)",
+          "cloud_threshold": "Max. cloud cover for shading",
           "temperature_sensor": "Temperature sensor (optional)",
           "temperature_threshold": "Temperature threshold for shading",
           "update_interval": "Evaluation interval",
