@@ -44,6 +44,18 @@ Je Zimmer/Gruppe entstehen zwei Entitäten:
 > Tipp: Du kannst einen Rollladen einzeln (eine Gruppe = ein Cover) oder zimmerweise
 > (eine Gruppe = mehrere Cover) anlegen – beliebig mischbar.
 
+## Globale Vorgaben vs. Gruppen-Override
+Sensoren, Schwellen und die **Standardwerte** für Azimut, Elevation sowie Auf-/Zu-Zeiten &
+-Trigger werden **einmal** in den Grundeinstellungen der Integration gesetzt
+(*Konfigurieren* auf der Integrationskachel). In jeder Gruppe sind diese Felder **optional**:
+
+- **leer** → es gilt die globale Vorgabe,
+- **ausgefüllt** → eigener Wert nur für diese Gruppe (z. B. Azimut je Fassade, Schlafzimmer
+  abends früher zu).
+
+Pro Gruppe verpflichtend bleiben nur: Name, Rollläden, Raumtyp, Positionen (offen/zu/
+Beschattung) und die An/Aus-Schalter für Beschattung/Auto-Auf/Auto-Zu.
+
 ## Logik in Kürze
 Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):
 

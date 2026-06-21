@@ -253,6 +253,17 @@ class ShutterControlManager:
     def _temp_sensor(self) -> str | None:
         return self.entry.options.get(CONF_TEMP_SENSOR)
 
+    def _resolve(self, cfg: dict, key: str, default):
+        """Per-group override if set, otherwise the global default, else ``default``.
+
+        An empty value (None or "") in the group config means "inherit", so we
+        fall back to the global option for that key.
+        """
+        value = cfg.get(key)
+        if value is None or value == "":
+            return self.entry.options.get(key, default)
+        return value
+
     def _sun_attrs(self) -> tuple[float | None, float | None]:
         """Return (azimuth, elevation) from the sun entity."""
         state = self.hass.states.get(self._sun_entity)
@@ -365,30 +376,32 @@ class ShutterControlManager:
 
         is_weekend = now.weekday() >= 5
         up_t = _parse_time(
-            cfg.get(CONF_UP_TIME_WEEKEND) if is_weekend else cfg.get(CONF_UP_TIME),
+            self._resolve(cfg, CONF_UP_TIME_WEEKEND, None)
+            if is_weekend
+            else self._resolve(cfg, CONF_UP_TIME, None),
             DEFAULT_UP_TIME_WEEKEND if is_weekend else DEFAULT_UP_TIME,
         )
         down_t = _parse_time(
-            cfg.get(CONF_DOWN_TIME_WEEKEND)
+            self._resolve(cfg, CONF_DOWN_TIME_WEEKEND, None)
             if is_weekend
-            else cfg.get(CONF_DOWN_TIME),
+            else self._resolve(cfg, CONF_DOWN_TIME, None),
             DEFAULT_DOWN_TIME_WEEKEND if is_weekend else DEFAULT_DOWN_TIME,
         )
         up_dt = self._event_datetime(
             now,
-            cfg.get(CONF_UP_TRIGGER, DEFAULT_UP_TRIGGER),
+            self._resolve(cfg, CONF_UP_TRIGGER, DEFAULT_UP_TRIGGER),
             up_t,
-            int(cfg.get(CONF_UP_OFFSET, DEFAULT_UP_OFFSET)),
-            _parse_opt_time(cfg.get(CONF_UP_EARLIEST)),
-            _parse_opt_time(cfg.get(CONF_UP_LATEST)),
+            int(self._resolve(cfg, CONF_UP_OFFSET, DEFAULT_UP_OFFSET)),
+            _parse_opt_time(self._resolve(cfg, CONF_UP_EARLIEST, None)),
+            _parse_opt_time(self._resolve(cfg, CONF_UP_LATEST, None)),
         )
         down_dt = self._event_datetime(
             now,
-            cfg.get(CONF_DOWN_TRIGGER, DEFAULT_DOWN_TRIGGER),
+            self._resolve(cfg, CONF_DOWN_TRIGGER, DEFAULT_DOWN_TRIGGER),
             down_t,
-            int(cfg.get(CONF_DOWN_OFFSET, DEFAULT_DOWN_OFFSET)),
-            _parse_opt_time(cfg.get(CONF_DOWN_EARLIEST)),
-            _parse_opt_time(cfg.get(CONF_DOWN_LATEST)),
+            int(self._resolve(cfg, CONF_DOWN_OFFSET, DEFAULT_DOWN_OFFSET)),
+            _parse_opt_time(self._resolve(cfg, CONF_DOWN_EARLIEST, None)),
+            _parse_opt_time(self._resolve(cfg, CONF_DOWN_LATEST, None)),
         )
         today = now.date()
 
@@ -500,10 +513,10 @@ class ShutterControlManager:
         if azimuth is None or elevation is None:
             return False
 
-        az_start = float(cfg.get(CONF_AZIMUTH_START, DEFAULT_AZIMUTH_START))
-        az_end = float(cfg.get(CONF_AZIMUTH_END, DEFAULT_AZIMUTH_END))
-        el_min = float(cfg.get(CONF_ELEVATION_MIN, DEFAULT_ELEVATION_MIN))
-        el_max = float(cfg.get(CONF_ELEVATION_MAX, DEFAULT_ELEVATION_MAX))
+        az_start = float(self._resolve(cfg, CONF_AZIMUTH_START, DEFAULT_AZIMUTH_START))
+        az_end = float(self._resolve(cfg, CONF_AZIMUTH_END, DEFAULT_AZIMUTH_END))
+        el_min = float(self._resolve(cfg, CONF_ELEVATION_MIN, DEFAULT_ELEVATION_MIN))
+        el_max = float(self._resolve(cfg, CONF_ELEVATION_MAX, DEFAULT_ELEVATION_MAX))
 
         if not _azimuth_in_range(azimuth, az_start, az_end):
             return False
