@@ -177,8 +177,14 @@ class CoverState:
         return self.config.get(CONF_NAME) or self.subentry_id
 
     @property
-    def entity_id(self) -> str:
-        return self.config[CONF_COVER_ENTITY]
+    def entity_ids(self) -> list[str]:
+        """The cover entities controlled by this group (always a list)."""
+        value = self.config.get(CONF_COVER_ENTITY)
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        return list(value)
 
 
 class ShutterControlManager:
@@ -217,7 +223,7 @@ class ShutterControlManager:
         if (sensor := self._temp_sensor) is not None:
             tracked.add(sensor)
         for cover in self.covers.values():
-            tracked.add(cover.entity_id)
+            tracked.update(cover.entity_ids)
 
         self._unsub_state = async_track_state_change_event(
             self.hass, list(tracked), self._handle_state_event
@@ -280,7 +286,7 @@ class ShutterControlManager:
         entity_id = event.data.get(ATTR_ENTITY_ID)
         # A managed cover changed -> maybe a manual override.
         for cover in self.covers.values():
-            if cover.entity_id == entity_id:
+            if entity_id in cover.entity_ids:
                 self._check_manual_override(cover, event)
         self.hass.async_create_task(self._async_evaluate_all())
 
@@ -522,36 +528,56 @@ class ShutterControlManager:
 
     # ----------------------------------------------------------- command path
     async def _apply(self, cover: CoverState, position: int, mode: str) -> None:
-        """Send the cover to ``position`` unless it is already there."""
+        """Send every cover in the group to ``position`` unless already there."""
         position = max(0, min(100, int(position)))
-        current = self._current_position(cover)
-        if current is not None and abs(current - position) <= POSITION_TOLERANCE:
-            cover.mode = mode
-            cover.last_commanded = position
+        entity_ids = cover.entity_ids
+        if not entity_ids:
             return
 
         cover.last_commanded = position
+        cover.mode = mode
+
+        # Skip the service call if all known members are already in position.
+        if self._all_at_position(cover, position):
+            return
+
         cover.ignore_until = dt_util.utcnow() + timedelta(
             seconds=COMMAND_IGNORE_WINDOW
         )
-        cover.mode = mode
-        _LOGGER.debug("Moving %s to %s%% (mode=%s)", cover.name, position, mode)
+        _LOGGER.debug(
+            "Moving %s (%d cover(s)) to %s%% (mode=%s)",
+            cover.name,
+            len(entity_ids),
+            position,
+            mode,
+        )
         await self.hass.services.async_call(
             COVER_DOMAIN,
             SERVICE_SET_COVER_POSITION,
-            {ATTR_ENTITY_ID: cover.entity_id, "position": position},
+            {ATTR_ENTITY_ID: entity_ids, "position": position},
             blocking=False,
         )
 
-    def _current_position(self, cover: CoverState) -> int | None:
-        state = self.hass.states.get(cover.entity_id)
-        if state is None:
-            return None
-        pos = state.attributes.get(ATTR_POSITION)
-        try:
-            return int(pos) if pos is not None else None
-        except (ValueError, TypeError):
-            return None
+    def _all_at_position(self, cover: CoverState, position: int) -> bool:
+        """True if every member with a known position is already at ``position``.
+
+        Returns False when no member position is known, so we still command.
+        """
+        any_known = False
+        for entity_id in cover.entity_ids:
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            pos = state.attributes.get(ATTR_POSITION)
+            if pos is None:
+                continue
+            try:
+                if abs(int(pos) - position) > POSITION_TOLERANCE:
+                    return False
+            except (ValueError, TypeError):
+                continue
+            any_known = True
+        return any_known
 
     @callback
     def _notify(self) -> None:

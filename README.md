@@ -11,6 +11,8 @@ für Home Assistant nachbildet:
   Wohnräume nur auf die Beschattungs-Position.
 - **Manuelle Übersteuerung** – fährt jemand den Rollladen von Hand, pausiert die Automatik
   bis zum nächsten Auf-/Zu-Ereignis (nächster Tag).
+- **Zimmer / Gruppen** – eine Konfiguration kann mehrere Rollläden gemeinsam steuern
+  (ein Schalter, ein Status, eine Logik für die ganze Gruppe).
 
 > Steuert vorhandene `cover.*`-Entitäten, die `set_cover_position` unterstützen
 > (Position 100 % = offen, 0 % = geschlossen).
@@ -30,12 +32,17 @@ Home Assistant neu starten.
 1. *Einstellungen → Geräte & Dienste → Integration hinzufügen → „Shutter Control"*.
 2. Globale Einstellungen (Sonnen-Entität `sun.sun`, optional Helligkeits-/Temperatursensor,
    Schwellen, Auswerte-Intervall).
-3. Auf der Integrationskachel **„Rollladen hinzufügen"** für jeden Rollladen.
+3. Auf der Integrationskachel **„Zimmer / Gruppe hinzufügen"** – Namen vergeben und
+   **einen oder mehrere** Rollläden auswählen, die diese Gruppe gemeinsam steuert.
 
-Je Rollladen entstehen zwei Entitäten:
-- `switch.<name>_automatic` – Automatik an/aus.
+Je Zimmer/Gruppe entstehen zwei Entitäten:
+- `switch.<name>_automatic` – Automatik der Gruppe an/aus.
 - `sensor.<name>_status` – aktueller Modus (`idle`, `open`, `closed`, `shading`,
-  `manual`, `disabled`) inkl. Attributen (`manual_override`, `shading_active`, …).
+  `manual`, `disabled`) inkl. Attributen (`manual_override`, `shading_active`,
+  `controlled_entities`, …).
+
+> Tipp: Du kannst einen Rollladen einzeln (eine Gruppe = ein Cover) oder zimmerweise
+> (eine Gruppe = mehrere Cover) anlegen – beliebig mischbar.
 
 ## Logik in Kürze
 Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):

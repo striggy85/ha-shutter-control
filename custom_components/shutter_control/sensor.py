@@ -98,5 +98,5 @@ class ShutterStatusSensor(SensorEntity):
             "shading_active": cover.shading_active,
             "automatic_enabled": cover.automatic_enabled,
             "last_commanded_position": cover.last_commanded,
-            "controlled_entity": cover.entity_id,
+            "controlled_entities": cover.entity_ids,
         }

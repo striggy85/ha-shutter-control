@@ -140,14 +140,20 @@ def _cover_schema(defaults: dict[str, Any]) -> vol.Schema:
     def d(key: str, fallback: Any) -> Any:
         return defaults.get(key, fallback)
 
+    # Existing entries created before grouping stored a single entity id as a
+    # string; normalise to a list so the multi-select prefills correctly.
+    covers_default = defaults.get(CONF_COVER_ENTITY)
+    if isinstance(covers_default, str):
+        covers_default = [covers_default]
+
     return vol.Schema(
         {
             vol.Required(CONF_NAME, default=d(CONF_NAME, "")): selector.TextSelector(),
             vol.Required(
                 CONF_COVER_ENTITY,
-                description={"suggested_value": defaults.get(CONF_COVER_ENTITY)},
+                description={"suggested_value": covers_default},
             ): selector.EntitySelector(
-                selector.EntitySelectorConfig(domain="cover")
+                selector.EntitySelectorConfig(domain="cover", multiple=True)
             ),
             vol.Required(
                 CONF_ROOM_TYPE, default=d(CONF_ROOM_TYPE, DEFAULT_ROOM_TYPE)

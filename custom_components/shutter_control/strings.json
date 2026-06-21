@@ -37,15 +37,15 @@
     "cover": {
       "title": "Cover",
       "initiate_flow": {
-        "user": "Add cover",
-        "reconfigure": "Edit cover"
+        "user": "Add room / group",
+        "reconfigure": "Edit room / group"
       },
       "step": {
         "user": {
-          "title": "Add cover",
+          "title": "Add room / group",
           "data": {
-            "name": "Name",
-            "cover_entity": "Cover entity",
+            "name": "Name (room / group)",
+            "cover_entity": "Covers (one or more)",
             "room_type": "Room type",
             "shade_enabled": "Enable sun shading",
             "azimuth_start": "Facade azimuth from",
@@ -72,10 +72,10 @@
           }
         },
         "reconfigure": {
-          "title": "Edit cover",
+          "title": "Edit room / group",
           "data": {
-            "name": "Name",
-            "cover_entity": "Cover entity",
+            "name": "Name (room / group)",
+            "cover_entity": "Covers (one or more)",
             "room_type": "Room type",
             "shade_enabled": "Enable sun shading",
             "azimuth_start": "Facade azimuth from",

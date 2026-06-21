@@ -37,15 +37,15 @@
     "cover": {
       "title": "Rollladen",
       "initiate_flow": {
-        "user": "Rollladen hinzufügen",
-        "reconfigure": "Rollladen bearbeiten"
+        "user": "Zimmer / Gruppe hinzufügen",
+        "reconfigure": "Zimmer / Gruppe bearbeiten"
       },
       "step": {
         "user": {
-          "title": "Rollladen hinzufügen",
+          "title": "Zimmer / Gruppe hinzufügen",
           "data": {
-            "name": "Name",
-            "cover_entity": "Rollladen-Entität",
+            "name": "Name (Zimmer / Gruppe)",
+            "cover_entity": "Rollläden (einer oder mehrere)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
             "azimuth_start": "Fassaden-Azimut von",
@@ -72,10 +72,10 @@
           }
         },
         "reconfigure": {
-          "title": "Rollladen bearbeiten",
+          "title": "Zimmer / Gruppe bearbeiten",
           "data": {
-            "name": "Name",
-            "cover_entity": "Rollladen-Entität",
+            "name": "Name (Zimmer / Gruppe)",
+            "cover_entity": "Rollläden (einer oder mehrere)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
             "azimuth_start": "Fassaden-Azimut von",
