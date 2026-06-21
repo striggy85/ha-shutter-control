@@ -16,6 +16,7 @@ const STATUS = {
   shading: { label: "Beschattung", color: "#f9a825" },
   manual: { label: "Manuell", color: "#e53935" },
   disabled: { label: "Aus", color: "var(--disabled-text-color)" },
+  door_open: { label: "Tür offen", color: "#fb8c00" },
 };
 
 class ShutterControlCard extends HTMLElement {

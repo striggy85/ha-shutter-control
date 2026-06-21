@@ -40,6 +40,9 @@ CONF_FLOORS = "floors"
 CONF_ROOM_TYPE = "room_type"
 
 CONF_SHADE_ENABLED = "shade_enabled"
+CONF_DOOR_SENSOR = "door_sensor"
+CONF_DOOR_TRIGGER_ENABLED = "door_trigger_enabled"
+DEFAULT_DOOR_TRIGGER_ENABLED = True
 CONF_AZIMUTH_START = "azimuth_start"
 CONF_AZIMUTH_END = "azimuth_end"
 CONF_ELEVATION_MIN = "elevation_min"
@@ -106,6 +109,7 @@ MODE_CLOSED = "closed"
 MODE_SHADING = "shading"
 MODE_MANUAL = "manual"
 MODE_DISABLED = "disabled"
+MODE_DOOR = "door_open"
 
 # Tolerance (in %) when comparing cover positions
 POSITION_TOLERANCE = 3

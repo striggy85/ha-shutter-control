@@ -15,6 +15,7 @@ from .const import (
     DOMAIN,
     MODE_CLOSED,
     MODE_DISABLED,
+    MODE_DOOR,
     MODE_IDLE,
     MODE_MANUAL,
     MODE_OPEN,
@@ -30,6 +31,7 @@ MODES = [
     MODE_SHADING,
     MODE_MANUAL,
     MODE_DISABLED,
+    MODE_DOOR,
 ]
 
 
@@ -99,6 +101,7 @@ class ShutterStatusSensor(SensorEntity):
         cfg = cover.config
         return {
             "manual_override": cover.manual_override,
+            "door_locked": cover.door_locked,
             "shading_active": cover.shading_active,
             "automatic_enabled": cover.automatic_enabled,
             "last_commanded_position": cover.last_commanded,

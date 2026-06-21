@@ -87,6 +87,8 @@
             "floors": "Floors (all covers in them)",
             "room_type": "Room type",
             "shade_enabled": "Enable sun shading",
+            "door_trigger_enabled": "Door/window control (raise on open, lock while open)",
+            "door_sensor": "Door/window sensor (binary sensor)",
             "azimuth_start": "Facade azimuth from (empty = global)",
             "azimuth_end": "Facade azimuth to (empty = global)",
             "elevation_min": "Min. sun elevation (empty = global)",
@@ -119,6 +121,8 @@
             "floors": "Floors (all covers in them)",
             "room_type": "Room type",
             "shade_enabled": "Enable sun shading",
+            "door_trigger_enabled": "Door/window control (raise on open, lock while open)",
+            "door_sensor": "Door/window sensor (binary sensor)",
             "azimuth_start": "Facade azimuth from (empty = global)",
             "azimuth_end": "Facade azimuth to (empty = global)",
             "elevation_min": "Min. sun elevation (empty = global)",
@@ -169,7 +173,8 @@
           "closed": "Closed",
           "shading": "Shading",
           "manual": "Manual override",
-          "disabled": "Disabled"
+          "disabled": "Disabled",
+          "door_open": "Door open"
         }
       }
     }

@@ -87,6 +87,8 @@
             "floors": "Geschosse (alle Rollläden darin)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
+            "door_trigger_enabled": "Tür-/Fenstersteuerung (bei Öffnen hochfahren, offen = gesperrt)",
+            "door_sensor": "Tür-/Fenstersensor (Binärsensor)",
             "azimuth_start": "Fassaden-Azimut von (leer = global)",
             "azimuth_end": "Fassaden-Azimut bis (leer = global)",
             "elevation_min": "Min. Sonnenhöhe (leer = global)",
@@ -119,6 +121,8 @@
             "floors": "Geschosse (alle Rollläden darin)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
+            "door_trigger_enabled": "Tür-/Fenstersteuerung (bei Öffnen hochfahren, offen = gesperrt)",
+            "door_sensor": "Tür-/Fenstersensor (Binärsensor)",
             "azimuth_start": "Fassaden-Azimut von (leer = global)",
             "azimuth_end": "Fassaden-Azimut bis (leer = global)",
             "elevation_min": "Min. Sonnenhöhe (leer = global)",
@@ -169,7 +173,8 @@
           "closed": "Geschlossen",
           "shading": "Beschattung",
           "manual": "Manuell übersteuert",
-          "disabled": "Deaktiviert"
+          "disabled": "Deaktiviert",
+          "door_open": "Tür offen"
         }
       }
     }
