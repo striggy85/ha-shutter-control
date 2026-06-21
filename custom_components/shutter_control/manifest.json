@@ -3,10 +3,10 @@
   "name": "Shutter Control",
   "version": "0.1.0",
   "config_flow": true,
-  "documentation": "https://github.com/yourname/ha-shutter-control",
-  "issue_tracker": "https://github.com/yourname/ha-shutter-control/issues",
+  "documentation": "https://github.com/striggy85/ha-shutter-control",
+  "issue_tracker": "https://github.com/striggy85/ha-shutter-control/issues",
   "dependencies": ["sun"],
-  "codeowners": [],
+  "codeowners": ["@striggy85"],
   "iot_class": "calculated",
   "integration_type": "hub"
 }
