@@ -45,6 +45,25 @@ Je Zimmer/Gruppe entstehen zwei Entitäten:
 > Tipp: Du kannst einen Rollladen einzeln (eine Gruppe = ein Cover) oder zimmerweise
 > (eine Gruppe = mehrere Cover) anlegen – beliebig mischbar.
 
+## Dashboard-Karte
+Die Integration bringt eine **Lovelace-Karte** mit, die je Gruppe Status, nächste
+Fahrzeiten, die voraussichtliche Beschattung (geometrisch aus Sonnenstand, ohne Wolken)
+sowie Automatik-Schalter und manuelle Steuerung (auf/stopp/zu + Position) zeigt.
+
+Die Karte wird beim Setup **automatisch** als Frontend-Ressource geladen – du musst nichts
+manuell einbinden. Nach einem Neustart (ggf. Browser-Cache leeren):
+
+1. Dashboard → *Karte hinzufügen* → **„Shutter Control Card"** (oder manuell):
+   ```yaml
+   type: custom:shutter-control-card
+   title: Rollläden
+   # entities: [sensor.wohnzimmer_status, ...]   # optional, sonst Auto-Erkennung
+   ```
+
+Ohne `entities` erkennt die Karte alle Gruppen automatisch (über die Status-Sensoren der
+Integration). Die nötigen Daten liefert `sensor.<name>_status` als Attribute
+(`next_up`, `next_down`, `shade_forecast_start`, `shade_forecast_end`, …).
+
 ## Globale Vorgaben vs. Gruppen-Override
 Sensoren, Schwellen und die **Standardwerte** für Azimut, Elevation sowie Auf-/Zu-Zeiten &
 -Trigger werden **einmal** in den Grundeinstellungen der Integration gesetzt

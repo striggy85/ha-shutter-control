@@ -15,7 +15,8 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta
+from datetime import date as date_cls
+from datetime import datetime, time, timedelta, timezone
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -171,6 +172,13 @@ class CoverState:
     # Last position we commanded + window during which state changes are ours.
     last_commanded: int | None = None
     ignore_until: datetime | None = None
+
+    # Forecast for the dashboard card.
+    next_up: datetime | None = None
+    next_down: datetime | None = None
+    shade_start: datetime | None = None  # predicted (geometric) shading window
+    shade_end: datetime | None = None
+    _shade_pred_date: object | None = None  # date the prediction was computed for
 
     @property
     def name(self) -> str:
@@ -392,36 +400,12 @@ class ShutterControlManager:
         open_pos = int(cfg.get(CONF_OPEN_POSITION, DEFAULT_OPEN_POSITION))
         closed_pos = int(cfg.get(CONF_CLOSED_POSITION, DEFAULT_CLOSED_POSITION))
 
-        is_weekend = now.weekday() >= 5
-        up_t = _parse_time(
-            self._resolve(cfg, CONF_UP_TIME_WEEKEND, None)
-            if is_weekend
-            else self._resolve(cfg, CONF_UP_TIME, None),
-            DEFAULT_UP_TIME_WEEKEND if is_weekend else DEFAULT_UP_TIME,
-        )
-        down_t = _parse_time(
-            self._resolve(cfg, CONF_DOWN_TIME_WEEKEND, None)
-            if is_weekend
-            else self._resolve(cfg, CONF_DOWN_TIME, None),
-            DEFAULT_DOWN_TIME_WEEKEND if is_weekend else DEFAULT_DOWN_TIME,
-        )
-        up_dt = self._event_datetime(
-            now,
-            self._resolve(cfg, CONF_UP_TRIGGER, DEFAULT_UP_TRIGGER),
-            up_t,
-            int(self._resolve(cfg, CONF_UP_OFFSET, DEFAULT_UP_OFFSET)),
-            _parse_opt_time(self._resolve(cfg, CONF_UP_EARLIEST, None)),
-            _parse_opt_time(self._resolve(cfg, CONF_UP_LATEST, None)),
-        )
-        down_dt = self._event_datetime(
-            now,
-            self._resolve(cfg, CONF_DOWN_TRIGGER, DEFAULT_DOWN_TRIGGER),
-            down_t,
-            int(self._resolve(cfg, CONF_DOWN_OFFSET, DEFAULT_DOWN_OFFSET)),
-            _parse_opt_time(self._resolve(cfg, CONF_DOWN_EARLIEST, None)),
-            _parse_opt_time(self._resolve(cfg, CONF_DOWN_LATEST, None)),
-        )
         today = now.date()
+        tzinfo = now.tzinfo
+        up_dt, down_dt = self._compute_up_down(cfg, today, tzinfo)
+
+        # Forecast data for the dashboard card (next up/down, predicted shading).
+        self._update_forecast(cover, now, up_dt, down_dt)
 
         # On the very first evaluation (e.g. after a restart) treat already
         # passed up/down events as done so we don't suddenly move the shutter.
@@ -486,39 +470,168 @@ class ShutterControlManager:
 
     def _event_datetime(
         self,
-        now: datetime,
+        target_date: date_cls,
+        tzinfo,
         trigger: str,
         fixed_time: time,
         offset_min: int,
         earliest: time | None,
         latest: time | None,
     ) -> datetime:
-        """Resolve an up/down trigger to today's local datetime.
+        """Resolve an up/down trigger to a local datetime on ``target_date``.
 
         ``trigger`` is one of ``time`` (use ``fixed_time``), ``sunrise`` or
-        ``sunset`` (astral event of the local day, shifted by ``offset_min``
-        and clamped to the optional ``earliest`` / ``latest`` bounds).
+        ``sunset`` (astral event of that day, shifted by ``offset_min`` and
+        clamped to the optional ``earliest`` / ``latest`` bounds).
         """
-        today = now.date()
         if trigger == TRIGGER_TIME:
-            return datetime.combine(today, fixed_time, tzinfo=now.tzinfo)
+            return datetime.combine(target_date, fixed_time, tzinfo=tzinfo)
 
         event = "sunrise" if trigger == TRIGGER_SUNRISE else "sunset"
-        base = get_astral_event_date(self.hass, event, today)
+        base = get_astral_event_date(self.hass, event, target_date)
         if base is None:
             # Polar day/night: no sunrise/sunset -> fall back to the fixed time.
-            return datetime.combine(today, fixed_time, tzinfo=now.tzinfo)
+            return datetime.combine(target_date, fixed_time, tzinfo=tzinfo)
 
         result = dt_util.as_local(base) + timedelta(minutes=offset_min)
         if earliest is not None:
-            lower = datetime.combine(today, earliest, tzinfo=now.tzinfo)
+            lower = datetime.combine(target_date, earliest, tzinfo=tzinfo)
             if result < lower:
                 result = lower
         if latest is not None:
-            upper = datetime.combine(today, latest, tzinfo=now.tzinfo)
+            upper = datetime.combine(target_date, latest, tzinfo=tzinfo)
             if result > upper:
                 result = upper
         return result
+
+    def _compute_up_down(
+        self, cfg: dict, target_date: date_cls, tzinfo
+    ) -> tuple[datetime, datetime]:
+        """Return (up_dt, down_dt) for ``target_date`` honouring overrides."""
+        is_weekend = target_date.weekday() >= 5
+        up_t = _parse_time(
+            self._resolve(cfg, CONF_UP_TIME_WEEKEND, None)
+            if is_weekend
+            else self._resolve(cfg, CONF_UP_TIME, None),
+            DEFAULT_UP_TIME_WEEKEND if is_weekend else DEFAULT_UP_TIME,
+        )
+        down_t = _parse_time(
+            self._resolve(cfg, CONF_DOWN_TIME_WEEKEND, None)
+            if is_weekend
+            else self._resolve(cfg, CONF_DOWN_TIME, None),
+            DEFAULT_DOWN_TIME_WEEKEND if is_weekend else DEFAULT_DOWN_TIME,
+        )
+        up_dt = self._event_datetime(
+            target_date,
+            tzinfo,
+            self._resolve(cfg, CONF_UP_TRIGGER, DEFAULT_UP_TRIGGER),
+            up_t,
+            int(self._resolve(cfg, CONF_UP_OFFSET, DEFAULT_UP_OFFSET)),
+            _parse_opt_time(self._resolve(cfg, CONF_UP_EARLIEST, None)),
+            _parse_opt_time(self._resolve(cfg, CONF_UP_LATEST, None)),
+        )
+        down_dt = self._event_datetime(
+            target_date,
+            tzinfo,
+            self._resolve(cfg, CONF_DOWN_TRIGGER, DEFAULT_DOWN_TRIGGER),
+            down_t,
+            int(self._resolve(cfg, CONF_DOWN_OFFSET, DEFAULT_DOWN_OFFSET)),
+            _parse_opt_time(self._resolve(cfg, CONF_DOWN_EARLIEST, None)),
+            _parse_opt_time(self._resolve(cfg, CONF_DOWN_LATEST, None)),
+        )
+        return up_dt, down_dt
+
+    def _update_forecast(
+        self, cover: CoverState, now: datetime, up_dt: datetime, down_dt: datetime
+    ) -> None:
+        """Compute next up/down time and today's predicted shading window."""
+        cfg = cover.config
+        tzinfo = now.tzinfo
+        today = now.date()
+        tomorrow = today + timedelta(days=1)
+
+        # Next morning up: today's if still ahead, else tomorrow's.
+        if cfg.get(CONF_AUTO_UP_ENABLED, True):
+            cover.next_up = up_dt if now < up_dt else (
+                self._compute_up_down(cfg, tomorrow, tzinfo)[0]
+            )
+        else:
+            cover.next_up = None
+
+        # Next evening down: today's if still ahead, else tomorrow's.
+        if cfg.get(CONF_AUTO_DOWN_ENABLED, True):
+            cover.next_down = down_dt if now < down_dt else (
+                self._compute_up_down(cfg, tomorrow, tzinfo)[1]
+            )
+        else:
+            cover.next_down = None
+
+        # Predicted shading window (geometry only) - recompute once per day.
+        if cfg.get(CONF_SHADE_ENABLED, True):
+            if cover._shade_pred_date != today:
+                cover._shade_pred_date = today
+                window = self._predict_shading(cfg, today, tzinfo, up_dt, down_dt)
+                cover.shade_start, cover.shade_end = (
+                    window if window else (None, None)
+                )
+        else:
+            cover.shade_start = cover.shade_end = None
+            cover._shade_pred_date = today
+
+    def _predict_shading(
+        self,
+        cfg: dict,
+        target_date: date_cls,
+        tzinfo,
+        up_dt: datetime,
+        down_dt: datetime,
+    ) -> tuple[datetime, datetime] | None:
+        """Predict today's shading window from sun geometry (ignores clouds).
+
+        Scans the daytime hours and returns the first/last time at which the sun
+        is within the facade azimuth window and the elevation window, clamped to
+        the up/down period. Returns None if shading is not expected today.
+        """
+        try:
+            from astral import Observer
+            from astral.sun import azimuth as _az, elevation as _el
+        except ImportError:  # astral ships with HA, but stay defensive
+            return None
+
+        az_start = float(self._resolve(cfg, CONF_AZIMUTH_START, DEFAULT_AZIMUTH_START))
+        az_end = float(self._resolve(cfg, CONF_AZIMUTH_END, DEFAULT_AZIMUTH_END))
+        el_min = float(self._resolve(cfg, CONF_ELEVATION_MIN, DEFAULT_ELEVATION_MIN))
+        el_max = float(self._resolve(cfg, CONF_ELEVATION_MAX, DEFAULT_ELEVATION_MAX))
+
+        observer = Observer(
+            latitude=self.hass.config.latitude,
+            longitude=self.hass.config.longitude,
+            elevation=self.hass.config.elevation or 0.0,
+        )
+
+        start: datetime | None = None
+        end: datetime | None = None
+        base = datetime.combine(target_date, time(0, 0), tzinfo=tzinfo)
+        step = timedelta(minutes=10)
+        for i in range(0, 24 * 6 + 1):
+            cur = base + step * i
+            if cur < up_dt or cur > down_dt:
+                continue
+            cur_utc = cur.astimezone(timezone.utc)
+            try:
+                el = _el(observer, cur_utc)
+                if not (el_min <= el <= el_max):
+                    continue
+                az = _az(observer, cur_utc)
+            except (ValueError, TypeError):
+                continue
+            if _azimuth_in_range(az, az_start, az_end):
+                if start is None:
+                    start = cur
+                end = cur
+        if start is None or end is None:
+            return None
+        return start, end
 
     def _should_shade(
         self,

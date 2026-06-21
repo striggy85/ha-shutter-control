@@ -9,6 +9,9 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import ShutterControlConfigEntry
 from .const import (
+    CONF_AUTO_DOWN_ENABLED,
+    CONF_AUTO_UP_ENABLED,
+    CONF_ROOM_TYPE,
     DOMAIN,
     MODE_CLOSED,
     MODE_DISABLED,
@@ -93,10 +96,18 @@ class ShutterStatusSensor(SensorEntity):
         cover = self._manager.covers.get(self._subentry_id)
         if cover is None:
             return {}
+        cfg = cover.config
         return {
             "manual_override": cover.manual_override,
             "shading_active": cover.shading_active,
             "automatic_enabled": cover.automatic_enabled,
             "last_commanded_position": cover.last_commanded,
             "controlled_entities": cover.entity_ids,
+            "room_type": cfg.get(CONF_ROOM_TYPE),
+            "next_up": cover.next_up,
+            "next_down": cover.next_down,
+            "shade_forecast_start": cover.shade_start,
+            "shade_forecast_end": cover.shade_end,
+            "auto_up_enabled": cfg.get(CONF_AUTO_UP_ENABLED, True),
+            "auto_down_enabled": cfg.get(CONF_AUTO_DOWN_ENABLED, True),
         }
