@@ -171,9 +171,8 @@ class CoverState:
 
     # Door/window: runtime switches + state.
     door_action_enabled: bool = True   # raise + lock while contact is open
-    door_restore_enabled: bool = True  # lower back to prior position on close
+    door_restore_enabled: bool = True  # on close: go to the current target state
     door_locked: bool = False
-    pre_door_position: int | None = None  # position remembered before raising
 
     # Edge tracking so up/down fire only once per day.
     last_up_date: object | None = None
@@ -474,26 +473,29 @@ class ShutterControlManager:
 
         # ---- Door/window contact -----------------------------------------
         # Switch 1 (door_action): open contact -> raise once + lock automation.
-        # Switch 2 (door_restore): on close -> move back to the position the
-        # shutter had before it was raised.
+        # Switch 2 (door_restore): on close -> move to the current target state
+        # (closed if it should be closed now, shaded if shading applies, ...).
         door_open = self._door_open(cfg)
         if door_open is True and cover.door_action_enabled:
             if not cover.door_locked:
                 cover.door_locked = True
                 cover.manual_override = False
                 cover.shading_active = False
-                cover.pre_door_position = self._group_max_position(cover)
                 await self._apply(cover, open_pos, MODE_DOOR)
             cover.mode = MODE_DOOR
             return
         if cover.door_locked:
             # Contact closed (or door action switched off) -> unlock.
             cover.door_locked = False
-            prev = cover.pre_door_position
-            cover.pre_door_position = None
-            if cover.door_restore_enabled and prev is not None:
-                mode = MODE_CLOSED if prev <= closed_pos + POSITION_TOLERANCE else MODE_OPEN
-                await self._apply(cover, prev, mode)
+            if cover.door_restore_enabled:
+                # Move to where the shutter should be *now* (closed if it should
+                # be closed, shaded if shading applies, otherwise open).
+                target, tmode, want_shade = self._target_now(
+                    cover, now, up_dt, down_dt, azimuth, elevation, cloud,
+                    temperature, room_type, open_pos, closed_pos,
+                )
+                cover.shading_active = want_shade
+                await self._apply(cover, target, tmode)
                 return
 
         # On the very first evaluation (e.g. after a restart) treat already
@@ -758,6 +760,39 @@ class ShutterControlManager:
         if start is None or end is None:
             return None
         return start, end
+
+    def _target_now(
+        self,
+        cover: CoverState,
+        now: datetime,
+        up_dt: datetime,
+        down_dt: datetime,
+        azimuth: float | None,
+        elevation: float | None,
+        cloud: float | None,
+        temperature: float | None,
+        room_type: str,
+        open_pos: int,
+        closed_pos: int,
+    ) -> tuple[int, str, bool]:
+        """Where the shutter should be right now (position, mode, shading?)."""
+        cfg = cover.config
+        # Night / before morning-up or after evening-down -> closed.
+        if now < up_dt or now >= down_dt:
+            return closed_pos, MODE_CLOSED, False
+        # Daytime: shading conditions met?
+        if cfg.get(CONF_SHADE_ENABLED, True) and self._should_shade(
+            cfg, azimuth, elevation, cloud, temperature
+        ):
+            if room_type == ROOM_SLEEPING:
+                return closed_pos, MODE_CLOSED, True
+            return (
+                int(cfg.get(CONF_SHADE_POSITION, DEFAULT_SHADE_POSITION)),
+                MODE_SHADING,
+                True,
+            )
+        # Daytime, no shading -> open.
+        return open_pos, MODE_OPEN, False
 
     def _should_shade(
         self,

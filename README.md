@@ -16,7 +16,8 @@ für Home Assistant nachbildet:
   (ein Schalter, ein Status, eine Logik für die ganze Gruppe).
 - **Tür-/Fensterkontakt** – pro Gruppe optional ein Binärsensor mit zwei Schaltern (live in
   der Karte): „Tür auf → hoch" (hochfahren + Automatik sperren, solange offen) und
-  „Tür zu → zurück" (beim Schließen zurück auf die vorherige Position, falls vorher unten).
+  „Tür zu → zurück" (beim Schließen in den **aktuellen Soll-Zustand** fahren – also zu, wenn
+  der Rollladen jetzt zu/beschattet sein müsste).
 
 > Steuert vorhandene `cover.*`-Entitäten, die `set_cover_position` unterstützen
 > (Position 100 % = offen, 0 % = geschlossen).
