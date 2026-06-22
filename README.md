@@ -1,5 +1,7 @@
 # Shutter Control für Home Assistant
 
+🌐 **Deutsch** | [English](README.en.md)
+
 > [!NOTE]
 > **Mit KI erstellt.** Diese Integration wurde mithilfe eines KI-Assistenten
 > (Claude / Claude Code) entwickelt und anschließend von einem Menschen getestet und
