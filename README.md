@@ -1,5 +1,15 @@
 # Shutter Control für Home Assistant
 
+> [!NOTE]
+> **Mit KI erstellt.** Diese Integration wurde mithilfe eines KI-Assistenten
+> (Claude / Claude Code) entwickelt und anschließend von einem Menschen getestet und
+> betreut. Der Code ist nach bestem Wissen geprüft, kann aber Fehler enthalten – bitte
+> vor dem Produktiveinsatz selbst testen. Nutzung auf eigene Verantwortung.
+>
+> 💬 **Feedback erwünscht!** Fehler, Wünsche und Verbesserungsvorschläge sind ausdrücklich
+> willkommen – bitte als [GitHub-Issue](https://github.com/striggy85/ha-shutter-control/issues)
+> melden (gern auf Deutsch oder Englisch). Pull Requests ebenso.
+
 Eine Custom Integration, die die Kernfunktionen des ioBroker-Adapters
 [`shuttercontrol`](https://github.com/iobroker-community-adapters/ioBroker.shuttercontrol)
 für Home Assistant nachbildet:
@@ -116,3 +126,18 @@ Lässt sich bei Bedarf ergänzen.
 > Die Sonnenstand-Werte (Azimut/Höhe für Beschattung) und die Astro-Ereignisse
 > (Sonnenauf-/-untergang für Auf/Zu) kommen aus `sun.sun` bzw. der Astral-Bibliothek von
 > Home Assistant – an deinem konfigurierten Standort.
+
+## Mitwirken & Feedback
+Diese Integration ist **mit KI-Unterstützung (Claude / Claude Code)** entstanden und wird
+von einem Menschen gepflegt. Sie steht ohne Gewähr zur Verfügung.
+
+- 🐞 **Fehler gefunden?** Bitte ein [Issue](https://github.com/striggy85/ha-shutter-control/issues)
+  öffnen – idealerweise mit HA-Version, Integrations-Version, betroffener Gruppe/Konfiguration
+  und (falls vorhanden) dem relevanten Log-Auszug.
+- 💡 **Idee oder Verbesserungsvorschlag?** Gern ebenfalls als Issue – auch kleine Hinweise
+  sind willkommen.
+- 🔧 **Pull Requests** sind willkommen.
+- Sprache: Deutsch oder Englisch.
+
+Da Teile des Codes KI-generiert sind, bitte Änderungen vor dem Produktiveinsatz testen.
+Rückmeldungen helfen, die Integration zu verbessern.
