@@ -55,14 +55,15 @@ class ShutterControlCard extends HTMLElement {
       if (!st) continue;
       const reg = hass.entities ? hass.entities[id] : null;
       const devId = reg ? reg.device_id : null;
-      let sw = null;
+      const switches = {};
       if (devId && hass.entities) {
         for (const eid of Object.keys(hass.entities)) {
           const e = hass.entities[eid];
-          if (e.device_id === devId && eid.startsWith("switch.")) {
-            sw = eid;
-            break;
-          }
+          if (e.device_id !== devId || !eid.startsWith("switch.")) continue;
+          const sst = hass.states[eid];
+          const role = sst && sst.attributes ? sst.attributes.sc_role : null;
+          if (role) switches[role] = eid;
+          else if (!switches.automatic) switches.automatic = eid;
         }
       }
       let name = st.attributes.friendly_name || id;
@@ -73,7 +74,7 @@ class ShutterControlCard extends HTMLElement {
       out.push({
         id,
         st,
-        sw,
+        switches,
         name,
         covers: st.attributes.controlled_entities || [],
       });
@@ -87,7 +88,12 @@ class ShutterControlCard extends HTMLElement {
     return this._groups()
       .map((g) => {
         const a = g.st.attributes;
-        const swState = g.sw && hass.states[g.sw] ? hass.states[g.sw].state : "";
+        const swState = ["automatic", "door_action", "door_restore"]
+          .map((r) => {
+            const id = g.switches[r];
+            return id && hass.states[id] ? hass.states[id].state : "";
+          })
+          .join(",");
         const pos = g.covers
           .map((c) =>
             hass.states[c] ? hass.states[c].attributes.current_position : ""
@@ -166,6 +172,19 @@ class ShutterControlCard extends HTMLElement {
         const pos = cover0 && cover0.attributes.current_position != null
           ? cover0.attributes.current_position
           : "";
+        const swOn = (r) => {
+          const id = g.switches[r];
+          return id && this._hass.states[id]
+            ? this._hass.states[id].state === "on"
+            : false;
+        };
+        const doorRow =
+          g.switches.door_action || g.switches.door_restore
+            ? `<div class="door">
+                 ${g.switches.door_action ? `<label class="dt"><input type="checkbox" data-i="${i}" data-act="door_action" ${swOn("door_action") ? "checked" : ""}> Tür auf → hoch</label>` : ""}
+                 ${g.switches.door_restore ? `<label class="dt"><input type="checkbox" data-i="${i}" data-act="door_restore" ${swOn("door_restore") ? "checked" : ""}> Tür zu → zurück</label>` : ""}
+               </div>`
+            : "";
         return `
         <div class="grp">
           <div class="head">
@@ -189,6 +208,7 @@ class ShutterControlCard extends HTMLElement {
             <button data-i="${i}" data-act="close" title="Zu"><ha-icon icon="mdi:arrow-down"></ha-icon></button>
             <input class="pos" type="range" min="0" max="100" step="1" value="${pos}" data-i="${i}" title="Position ${pos}%">
           </div>
+          ${doorRow}
         </div>`;
       })
       .join("");
@@ -219,6 +239,10 @@ class ShutterControlCard extends HTMLElement {
         button.auto.on { border-color: var(--primary-color); color: var(--primary-color); }
         button.auto.off { color: var(--disabled-text-color); }
         input.pos { width: 90px; }
+        .door { display: flex; flex-wrap: wrap; gap: 14px; margin: 6px 0 0; }
+        .dt { display: inline-flex; align-items: center; gap: 5px; font-size: .82em;
+              color: var(--secondary-text-color); cursor: pointer; }
+        .dt input { accent-color: var(--primary-color); }
         .empty { color: var(--secondary-text-color); padding: 8px 0; }
       </style>
       <ha-card>
@@ -240,6 +264,17 @@ class ShutterControlCard extends HTMLElement {
         }
       });
     });
+    this._root.querySelectorAll(".door input").forEach((cb) => {
+      cb.addEventListener("change", () => {
+        const g = groups[Number(cb.dataset.i)];
+        const id = g.switches[cb.dataset.act];
+        if (id) {
+          this._svc("switch", cb.checked ? "turn_on" : "turn_off", {
+            entity_id: id,
+          });
+        }
+      });
+    });
   }
 
   _onAction(groups, ds) {
@@ -247,7 +282,8 @@ class ShutterControlCard extends HTMLElement {
     if (!g) return;
     switch (ds.act) {
       case "auto":
-        if (g.sw) this._svc("switch", "toggle", { entity_id: g.sw });
+        if (g.switches.automatic)
+          this._svc("switch", "toggle", { entity_id: g.switches.automatic });
         break;
       case "open":
         if (g.covers.length) this._svc("cover", "open_cover", { entity_id: g.covers });

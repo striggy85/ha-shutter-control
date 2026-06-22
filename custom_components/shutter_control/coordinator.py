@@ -50,7 +50,6 @@ from .const import (
     CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
     CONF_DOOR_SENSOR,
-    CONF_DOOR_TRIGGER_ENABLED,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
     CONF_DOWN_OFFSET,
@@ -96,7 +95,6 @@ from .const import (
     DEFAULT_UP_TIME_WEEKEND,
     DEFAULT_UP_TRIGGER,
     DEFAULT_UPDATE_INTERVAL,
-    DEFAULT_DOOR_TRIGGER_ENABLED,
     MODE_CLOSED,
     MODE_DOOR,
     MODE_DISABLED,
@@ -171,8 +169,11 @@ class CoverState:
     # Manual override: paused until the next up/down event.
     manual_override: bool = False
 
-    # Door/window open -> automation locked until the contact closes again.
+    # Door/window: runtime switches + state.
+    door_action_enabled: bool = True   # raise + lock while contact is open
+    door_restore_enabled: bool = True  # lower back to prior position on close
     door_locked: bool = False
+    pre_door_position: int | None = None  # position remembered before raising
 
     # Edge tracking so up/down fire only once per day.
     last_up_date: object | None = None
@@ -345,13 +346,11 @@ class ShutterControlManager:
         return self._read_float(entity_id)
 
     def _door_open(self, cfg: dict) -> bool | None:
-        """Door/window state for this group.
+        """Door/window contact state for this group.
 
-        Returns True/False when the feature is active and the sensor is
-        readable, or None when the feature is off / no sensor / unknown.
+        Returns True/False when a sensor is configured and readable, or None
+        when no sensor is set / the state is unknown.
         """
-        if not cfg.get(CONF_DOOR_TRIGGER_ENABLED, DEFAULT_DOOR_TRIGGER_ENABLED):
-            return None
         entity_id = cfg.get(CONF_DOOR_SENSOR)
         if not entity_id:
             return None
@@ -415,6 +414,21 @@ class ShutterControlManager:
         self._notify()
         self.hass.async_create_task(self._async_evaluate_all())
 
+    def set_door_action(self, subentry_id: str, enabled: bool) -> None:
+        cover = self.covers.get(subentry_id)
+        if cover is None:
+            return
+        cover.door_action_enabled = enabled
+        self._notify()
+        self.hass.async_create_task(self._async_evaluate_all())
+
+    def set_door_restore(self, subentry_id: str, enabled: bool) -> None:
+        cover = self.covers.get(subentry_id)
+        if cover is None:
+            return
+        cover.door_restore_enabled = enabled
+        self._notify()
+
     # ------------------------------------------------------------- evaluation
     async def _async_evaluate_all(self) -> None:
         now = dt_util.now()  # local time, tz-aware
@@ -459,20 +473,28 @@ class ShutterControlManager:
         self._update_forecast(cover, now, up_dt, down_dt)
 
         # ---- Door/window contact -----------------------------------------
-        # Open contact -> raise the shutter once, then lock automation until
-        # the contact closes again.
+        # Switch 1 (door_action): open contact -> raise once + lock automation.
+        # Switch 2 (door_restore): on close -> move back to the position the
+        # shutter had before it was raised.
         door_open = self._door_open(cfg)
-        if door_open is True:
+        if door_open is True and cover.door_action_enabled:
             if not cover.door_locked:
                 cover.door_locked = True
                 cover.manual_override = False
                 cover.shading_active = False
+                cover.pre_door_position = self._group_max_position(cover)
                 await self._apply(cover, open_pos, MODE_DOOR)
             cover.mode = MODE_DOOR
             return
         if cover.door_locked:
-            # Contact just closed (or feature switched off) -> resume below.
+            # Contact closed (or door action switched off) -> unlock.
             cover.door_locked = False
+            prev = cover.pre_door_position
+            cover.pre_door_position = None
+            if cover.door_restore_enabled and prev is not None:
+                mode = MODE_CLOSED if prev <= closed_pos + POSITION_TOLERANCE else MODE_OPEN
+                await self._apply(cover, prev, mode)
+                return
 
         # On the very first evaluation (e.g. after a restart) treat already
         # passed up/down events as done so we don't suddenly move the shutter.

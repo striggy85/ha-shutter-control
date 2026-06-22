@@ -29,7 +29,6 @@ from .const import (
     CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
     CONF_DOOR_SENSOR,
-    CONF_DOOR_TRIGGER_ENABLED,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
     CONF_DOWN_OFFSET,
@@ -58,7 +57,6 @@ from .const import (
     DEFAULT_AZIMUTH_START,
     DEFAULT_CLOSED_POSITION,
     DEFAULT_CLOUD_THRESHOLD,
-    DEFAULT_DOOR_TRIGGER_ENABLED,
     DEFAULT_DOWN_OFFSET,
     DEFAULT_DOWN_TIME,
     DEFAULT_DOWN_TIME_WEEKEND,
@@ -264,10 +262,6 @@ def _cover_schema(defaults: dict[str, Any]) -> vol.Schema:
         ),
         vol.Required(
             CONF_SHADE_ENABLED, default=d(CONF_SHADE_ENABLED, True)
-        ): selector.BooleanSelector(),
-        vol.Required(
-            CONF_DOOR_TRIGGER_ENABLED,
-            default=d(CONF_DOOR_TRIGGER_ENABLED, DEFAULT_DOOR_TRIGGER_ENABLED),
         ): selector.BooleanSelector(),
         vol.Optional(
             CONF_DOOR_SENSOR,

@@ -87,8 +87,7 @@
             "floors": "Geschosse (alle Rollläden darin)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
-            "door_trigger_enabled": "Tür-/Fenstersteuerung (bei Öffnen hochfahren, offen = gesperrt)",
-            "door_sensor": "Tür-/Fenstersensor (Binärsensor)",
+            "door_sensor": "Tür-/Fenstersensor (Schalter erscheinen in der Karte)",
             "azimuth_start": "Fassaden-Azimut von (leer = global)",
             "azimuth_end": "Fassaden-Azimut bis (leer = global)",
             "elevation_min": "Min. Sonnenhöhe (leer = global)",
@@ -121,8 +120,7 @@
             "floors": "Geschosse (alle Rollläden darin)",
             "room_type": "Raumtyp",
             "shade_enabled": "Sonnenschutz aktivieren",
-            "door_trigger_enabled": "Tür-/Fenstersteuerung (bei Öffnen hochfahren, offen = gesperrt)",
-            "door_sensor": "Tür-/Fenstersensor (Binärsensor)",
+            "door_sensor": "Tür-/Fenstersensor (Schalter erscheinen in der Karte)",
             "azimuth_start": "Fassaden-Azimut von (leer = global)",
             "azimuth_end": "Fassaden-Azimut bis (leer = global)",
             "elevation_min": "Min. Sonnenhöhe (leer = global)",
@@ -165,6 +163,11 @@
     }
   },
   "entity": {
+    "switch": {
+      "automatic": { "name": "Automatik" },
+      "door_action": { "name": "Tür: hochfahren bei offen" },
+      "door_restore": { "name": "Tür: zurückfahren bei zu" }
+    },
     "sensor": {
       "status": {
         "state": {
