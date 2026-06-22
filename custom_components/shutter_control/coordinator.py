@@ -31,6 +31,7 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import (
+    async_call_later,
     async_track_state_change_event,
     async_track_time_interval,
 )
@@ -49,6 +50,7 @@ from .const import (
     CONF_CLOUD_SENSOR,
     CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
+    CONF_DOOR_DELAY,
     CONF_DOOR_SENSOR,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
@@ -78,6 +80,7 @@ from .const import (
     DEFAULT_AZIMUTH_START,
     DEFAULT_CLOSED_POSITION,
     DEFAULT_CLOUD_THRESHOLD,
+    DEFAULT_DOOR_DELAY,
     DEFAULT_DOWN_OFFSET,
     DEFAULT_DOWN_TIME,
     DEFAULT_DOWN_TIME_WEEKEND,
@@ -173,6 +176,10 @@ class CoverState:
     door_action_enabled: bool = True   # raise + lock while contact is open
     door_restore_enabled: bool = True  # on close: go to the current target state
     door_locked: bool = False
+    # Debounce: act only on a contact state that stayed stable long enough.
+    door_raw: bool | None = None
+    door_changed_at: datetime | None = None
+    door_effective: bool | None = None
 
     # Edge tracking so up/down fire only once per day.
     last_up_date: object | None = None
@@ -232,6 +239,7 @@ class ShutterControlManager:
         self.covers: dict[str, CoverState] = {}
         self._unsub_interval = None
         self._unsub_state = None
+        self._door_recheck_unsub = None
 
     # ------------------------------------------------------------------ setup
     async def async_setup(self) -> None:
@@ -278,6 +286,9 @@ class ShutterControlManager:
         if self._unsub_state is not None:
             self._unsub_state()
             self._unsub_state = None
+        if self._door_recheck_unsub is not None:
+            self._door_recheck_unsub()
+            self._door_recheck_unsub = None
 
     # ------------------------------------------------------ global config read
     @property
@@ -358,6 +369,51 @@ class ShutterControlManager:
             return None
         # binary_sensor "on" = open (door/window/opening device classes).
         return state.state == "on"
+
+    def _debounced_door(
+        self, cover: CoverState, cfg: dict, delay: float
+    ) -> bool | None:
+        """Debounced contact state: only changes after staying stable `delay` s.
+
+        The first reading is taken immediately; later changes must persist for
+        `delay` seconds before they take effect (so a brief slam/reopen is
+        ignored).
+        """
+        raw = self._door_open(cfg)
+        if raw is None:
+            return cover.door_effective  # keep last known state
+        now_utc = dt_util.utcnow()
+        if cover.door_effective is None:
+            # First observation - adopt it without waiting.
+            cover.door_effective = raw
+            cover.door_raw = raw
+            cover.door_changed_at = now_utc
+            return cover.door_effective
+        if raw != cover.door_raw:
+            # Raw state just changed - (re)start the debounce timer.
+            cover.door_raw = raw
+            cover.door_changed_at = now_utc
+        if raw != cover.door_effective:
+            stable_for = (now_utc - (cover.door_changed_at or now_utc)).total_seconds()
+            if stable_for >= delay:
+                cover.door_effective = raw  # stable long enough - commit
+            else:
+                self._schedule_door_recheck(delay)  # keep a re-check pending
+        return cover.door_effective
+
+    def _schedule_door_recheck(self, delay: float) -> None:
+        """Schedule one re-evaluation after the debounce window elapses."""
+        if self._door_recheck_unsub is not None:
+            return
+
+        @callback
+        def _fire(_now: datetime) -> None:
+            self._door_recheck_unsub = None
+            self.hass.async_create_task(self._async_evaluate_all())
+
+        self._door_recheck_unsub = async_call_later(
+            self.hass, float(delay) + 1.0, _fire
+        )
 
     # --------------------------------------------------------- event handlers
     @callback
@@ -475,7 +531,10 @@ class ShutterControlManager:
         # Switch 1 (door_action): open contact -> raise once + lock automation.
         # Switch 2 (door_restore): on close -> move to the current target state
         # (closed if it should be closed now, shaded if shading applies, ...).
-        door_open = self._door_open(cfg)
+        # The contact is debounced: it must stay stable for the configured delay
+        # before we act (ignores a door briefly falling shut / popping open).
+        delay = self.entry.options.get(CONF_DOOR_DELAY, DEFAULT_DOOR_DELAY)
+        door_open = self._debounced_door(cover, cfg, delay)
         if door_open is True and cover.door_action_enabled:
             if not cover.door_locked:
                 cover.door_locked = True

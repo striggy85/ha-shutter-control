@@ -28,6 +28,7 @@ from .const import (
     CONF_FLOORS,
     CONF_CLOUD_THRESHOLD,
     CONF_COVER_ENTITY,
+    CONF_DOOR_DELAY,
     CONF_DOOR_SENSOR,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
@@ -57,6 +58,7 @@ from .const import (
     DEFAULT_AZIMUTH_START,
     DEFAULT_CLOSED_POSITION,
     DEFAULT_CLOUD_THRESHOLD,
+    DEFAULT_DOOR_DELAY,
     DEFAULT_DOWN_OFFSET,
     DEFAULT_DOWN_TIME,
     DEFAULT_DOWN_TIME_WEEKEND,
@@ -209,6 +211,10 @@ def _global_schema(defaults: dict[str, Any]) -> vol.Schema:
             CONF_SHADE_ONLY_LOWER,
             default=defaults.get(CONF_SHADE_ONLY_LOWER, DEFAULT_SHADE_ONLY_LOWER),
         ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_DOOR_DELAY,
+            default=defaults.get(CONF_DOOR_DELAY, DEFAULT_DOOR_DELAY),
+        ): _num(0, 120, 1, "s"),
     }
     # Inheritable defaults (overridable per group).
     _azimuth_fields(schema, defaults, glob=True)
