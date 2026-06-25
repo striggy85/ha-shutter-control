@@ -1,0 +1,42 @@
+name: Release on version bump
+
+# Whenever the integration's manifest version changes on main, publish a
+# matching GitHub release (tag vX.Y.Z) automatically.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/shutter_control/manifest.json
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version from manifest
+        id: ver
+        run: |
+          VERSION="$(jq -r .version custom_components/shutter_control/manifest.json)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Manifest version: $VERSION"
+
+      - name: Create release if it does not exist yet
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists - nothing to do."
+          else
+            echo "Creating release $TAG"
+            gh release create "$TAG" \
+              --title "Shutter Control $TAG" \
+              --generate-notes \
+              --target "$GITHUB_SHA"
+          fi
