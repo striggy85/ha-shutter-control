@@ -42,6 +42,7 @@ from .const import (
     CONF_OPEN_POSITION,
     CONF_ROOM_TYPE,
     CONF_SHADE_ENABLED,
+    CONF_SHADE_KEEP_UNTIL_DOWN,
     CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
@@ -67,6 +68,7 @@ from .const import (
     DEFAULT_ELEVATION_MIN,
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
+    DEFAULT_SHADE_KEEP_UNTIL_DOWN,
     DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
@@ -210,6 +212,12 @@ def _global_schema(defaults: dict[str, Any]) -> vol.Schema:
         vol.Optional(
             CONF_SHADE_ONLY_LOWER,
             default=defaults.get(CONF_SHADE_ONLY_LOWER, DEFAULT_SHADE_ONLY_LOWER),
+        ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_SHADE_KEEP_UNTIL_DOWN,
+            default=defaults.get(
+                CONF_SHADE_KEEP_UNTIL_DOWN, DEFAULT_SHADE_KEEP_UNTIL_DOWN
+            ),
         ): selector.BooleanSelector(),
         vol.Optional(
             CONF_DOOR_DELAY,

@@ -91,6 +91,11 @@ Steht ein Rollladen bereits tiefer als die Beschattungsposition (z. B. nachts ge
 fährt ihn die Beschattung **nicht** nach oben. Ausschalten = Beschattung fährt immer exakt
 auf die Beschattungsposition.
 
+### Beschattung bis abends halten
+Option **„Beschattung bis abends halten"** (Standard aus): Hat die Beschattung einmal
+ausgelöst, bleibt der Rollladen auf Beschattungsposition – auch wenn die Sonne weiterwandert –
+und fährt erst zur Abend-Zu-Zeit den **Rest** zu (statt zwischendurch wieder zu öffnen).
+
 ## Globale Vorgaben vs. Gruppen-Override
 Sensoren, Schwellen und die **Standardwerte** für Azimut, Elevation sowie Auf-/Zu-Zeiten &
 -Trigger werden **einmal** in den Grundeinstellungen der Integration gesetzt
@@ -118,7 +123,9 @@ Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):
    **unter** der Schwelle (klarer Himmel) sowie Temperatur über Schwelle →
    Beschattungs-Position (Schlafraum: komplett zu). Ende der Bedingung → wieder „offen".
 4. **Manuell**: Ändert sich die Rollladenposition außerhalb eines eigenen Stellbefehls,
-   wird die Automatik bis zum nächsten Auf-/Zu-Ereignis pausiert.
+   wird die Automatik bis zum nächsten Auf-/Zu-Ereignis pausiert – **spätestens aber mit dem
+   Tageswechsel**. Eine abends von Hand gefahrene Rollade beschattet also am Folgetag wieder
+   normal (auch wenn „Auto-Auf morgens" aus ist).
 
 ## Hinweise / nicht enthalten
 Bewusst nicht portiert (gegenüber dem Original-Adapter): Ferien-/Gäste-/Urlaubsmodus,

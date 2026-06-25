@@ -64,6 +64,7 @@ from .const import (
     CONF_OPEN_POSITION,
     CONF_ROOM_TYPE,
     CONF_SHADE_ENABLED,
+    CONF_SHADE_KEEP_UNTIL_DOWN,
     CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
@@ -89,6 +90,7 @@ from .const import (
     DEFAULT_ELEVATION_MIN,
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
+    DEFAULT_SHADE_KEEP_UNTIL_DOWN,
     DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
@@ -169,8 +171,9 @@ class CoverState:
     # Reported mode for the status sensor.
     mode: str = MODE_IDLE
 
-    # Manual override: paused until the next up/down event.
+    # Manual override: paused until the next up/down event (and cleared on a new day).
     manual_override: bool = False
+    manual_override_date: object | None = None
 
     # Door/window: runtime switches + state.
     door_action_enabled: bool = True   # raise + lock while contact is open
@@ -452,6 +455,7 @@ class ShutterControlManager:
                     position,
                 )
             cover.manual_override = True
+            cover.manual_override_date = dt_util.now().date()
             cover.mode = MODE_MANUAL
 
     # ------------------------------------------------------------- public API
@@ -523,6 +527,16 @@ class ShutterControlManager:
         today = now.date()
         tzinfo = now.tzinfo
         up_dt, down_dt = self._compute_up_down(cfg, today, tzinfo)
+
+        # A manual override only lasts for the day it was made, so a shutter
+        # adjusted by hand in the evening still shades again the next day.
+        if (
+            cover.manual_override
+            and cover.manual_override_date is not None
+            and cover.manual_override_date != today
+        ):
+            cover.manual_override = False
+            cover.manual_override_date = None
 
         # Forecast data for the dashboard card (next up/down, predicted shading).
         self._update_forecast(cover, now, up_dt, down_dt)
@@ -627,8 +641,16 @@ class ShutterControlManager:
                 cover.shading_active = True
                 await self._apply(cover, shade_pos, MODE_SHADING)
         elif not should_shade and cover.shading_active:
-            cover.shading_active = False
-            await self._apply(cover, open_pos, MODE_OPEN)
+            keep = self.entry.options.get(
+                CONF_SHADE_KEEP_UNTIL_DOWN, DEFAULT_SHADE_KEEP_UNTIL_DOWN
+            )
+            if keep:
+                # Keep the shade position until the evening down event closes it
+                # fully (don't reopen when the sun moves on).
+                cover.mode = MODE_SHADING
+            else:
+                cover.shading_active = False
+                await self._apply(cover, open_pos, MODE_OPEN)
         elif not cover.shading_active and cover.mode not in (MODE_OPEN,):
             cover.mode = MODE_IDLE
 

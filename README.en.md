@@ -91,6 +91,11 @@ The global settings include the option **"Shading only lowers"** (on by default)
 shutter is already further down than the shade position (e.g. closed at night), shading does
 **not** raise it. Turn it off to always move exactly to the shade position.
 
+### Keep shade until evening
+Option **"Keep shade position until evening"** (off by default): once shading has engaged the
+shutter stays at the shade position – even as the sun moves on – and only closes the
+**remaining bit** at the evening down time (instead of reopening in between).
+
 ## Global defaults vs. per-group overrides
 Sensors, thresholds and the **default values** for azimuth, elevation and up/down
 times & triggers are set **once** in the integration's global settings (*Configure* on the
@@ -116,7 +121,9 @@ On every interval (and on changes of sun/sensors/shutter):
    **below** the threshold (clear sky) and temperature above the threshold → shade position
    (bedroom: fully closed). When the condition ends → back to "open".
 4. **Manual**: if the shutter position changes outside of our own command, automation pauses
-   until the next up/down event.
+   until the next up/down event – but **at the latest when the day changes**. So a shutter
+   moved by hand in the evening shades again normally the next day (even with "auto-up in the
+   morning" turned off).
 
 ## Notes / not included
 Deliberately not ported (compared to the original adapter): holiday/guest/vacation mode,
