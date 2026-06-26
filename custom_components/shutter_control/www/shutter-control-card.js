@@ -108,6 +108,7 @@ class ShutterControlCard extends HTMLElement {
           a.next_action_at,
           a.shade_forecast_start,
           a.shade_forecast_end,
+          a.shade_block_reason,
           a.manual_override,
           swState,
           pos,
@@ -138,6 +139,19 @@ class ShutterControlCard extends HTMLElement {
       return this._fmt(a.shade_forecast_start) + "–" + this._fmt(a.shade_forecast_end);
     }
     return "keine";
+  }
+
+  _shadeHint(a) {
+    const map = {
+      elevation_high: "Sonne zu hoch",
+      elevation_low: "Sonne zu tief",
+      azimuth_out: "Sonne nicht auf der Fassade",
+      too_cloudy: "zu bewölkt",
+      too_cold: "zu kühl",
+      no_sun_data: "keine Sonnendaten",
+      manual: "manuell übersteuert",
+    };
+    return map[a.shade_block_reason] || "";
   }
 
   _nextAction(a) {
@@ -197,6 +211,7 @@ class ShutterControlCard extends HTMLElement {
             <div><ha-icon icon="mdi:weather-sunset-down"></ha-icon> ${this._fmt(a.next_down, true)}</div>
             <div><ha-icon icon="mdi:weather-sunny"></ha-icon> ${this._window(a)}</div>
           </div>
+          ${this._shadeHint(a) ? `<div class="hint"><ha-icon icon="mdi:information-outline"></ha-icon> Beschattung: ${this._shadeHint(a)}</div>` : ""}
           <div class="ctl">
             <button class="auto ${autoOn ? "on" : "off"}" data-i="${i}" data-act="auto">
               <ha-icon icon="mdi:robot${autoOn ? "" : "-off"}"></ha-icon>
@@ -230,6 +245,8 @@ class ShutterControlCard extends HTMLElement {
         .info { display: flex; flex-wrap: wrap; gap: 14px; color: var(--secondary-text-color);
                 font-size: .9em; margin: 4px 0 8px; }
         .info ha-icon { --mdc-icon-size: 18px; vertical-align: -4px; }
+        .hint { font-size: .82em; color: var(--secondary-text-color); margin: 0 0 6px; }
+        .hint ha-icon { --mdc-icon-size: 16px; vertical-align: -3px; }
         .ctl { display: flex; align-items: center; gap: 6px; }
         .ctl .spacer { flex: 1; }
         button { display: inline-flex; align-items: center; gap: 4px; cursor: pointer;

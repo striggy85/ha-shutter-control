@@ -171,9 +171,14 @@ class CoverState:
     # Reported mode for the status sensor.
     mode: str = MODE_IDLE
 
-    # Manual override: paused until the next up/down event (and cleared on a new day).
+    # Manual override: only suppresses the current shading step; released when the
+    # shading condition changes. Cleared by up/down edges and on a new day.
     manual_override: bool = False
     manual_override_date: object | None = None
+    shade_at_override: bool | None = None  # should_shade value when override began
+
+    # Why shading is (not) happening right now - for the dashboard / diagnostics.
+    shade_reason: str = ""
 
     # Door/window: runtime switches + state.
     door_action_enabled: bool = True   # raise + lock while contact is open
@@ -243,6 +248,11 @@ class ShutterControlManager:
         self._unsub_interval = None
         self._unsub_state = None
         self._door_recheck_unsub = None
+        # Last evaluated environment values (for diagnostics on the sensor).
+        self.last_azimuth: float | None = None
+        self.last_elevation: float | None = None
+        self.last_cloud: float | None = None
+        self.last_temperature: float | None = None
 
     # ------------------------------------------------------------------ setup
     async def async_setup(self) -> None:
@@ -454,6 +464,8 @@ class ShutterControlManager:
                     cover.name,
                     position,
                 )
+                # Fresh override -> capture the shading condition on next eval.
+                cover.shade_at_override = None
             cover.manual_override = True
             cover.manual_override_date = dt_util.now().date()
             cover.mode = MODE_MANUAL
@@ -494,6 +506,10 @@ class ShutterControlManager:
         azimuth, elevation = self._sun_attrs()
         cloud = self._read_cloud()
         temperature = self._read_float(self._temp_sensor)
+        self.last_azimuth = azimuth
+        self.last_elevation = elevation
+        self.last_cloud = cloud
+        self.last_temperature = temperature
         for cover in self.covers.values():
             # Re-resolve area/floor membership so covers added later are picked up.
             if cover.config.get(CONF_AREAS) or cover.config.get(CONF_FLOORS):
@@ -518,6 +534,7 @@ class ShutterControlManager:
         cfg = cover.config
         if not cover.automatic_enabled:
             cover.mode = MODE_DISABLED
+            cover.shade_reason = "automatic_off"
             return
 
         room_type = cfg.get(CONF_ROOM_TYPE, DEFAULT_ROOM_TYPE)
@@ -556,6 +573,7 @@ class ShutterControlManager:
                 cover.shading_active = False
                 await self._apply(cover, open_pos, MODE_DOOR)
             cover.mode = MODE_DOOR
+            cover.shade_reason = "door_open"
             return
         if cover.door_locked:
             # Contact closed (or door action switched off) -> unlock.
@@ -605,18 +623,33 @@ class ShutterControlManager:
             await self._apply(cover, closed_pos, MODE_CLOSED)
             return
 
-        if cover.manual_override:
-            cover.mode = MODE_MANUAL
-            return
-
         # ---- Continuous shading (only during the day, between up & down) -
         in_day_window = up_dt <= now < down_dt
-        if not cfg.get(CONF_SHADE_ENABLED, True) or not in_day_window:
-            return
+        shade_enabled = cfg.get(CONF_SHADE_ENABLED, True)
+        if in_day_window and shade_enabled:
+            should_shade, reason = self._should_shade(
+                cfg, azimuth, elevation, cloud, temperature
+            )
+        else:
+            should_shade = False
+            reason = "outside_day_window" if not in_day_window else "shade_disabled"
+        cover.shade_reason = reason
 
-        should_shade = self._should_shade(
-            cfg, azimuth, elevation, cloud, temperature
-        )
+        # Manual override only suppresses the *current* shading step: it keeps the
+        # manually set position until the shading condition changes, then releases
+        # so automation resumes. (Auto up/down already run regardless, above.)
+        if cover.manual_override:
+            if cover.shade_at_override is None:
+                cover.shade_at_override = should_shade
+            if should_shade == cover.shade_at_override:
+                cover.mode = MODE_MANUAL
+                cover.shade_reason = "manual"
+                return
+            cover.manual_override = False
+            cover.shade_at_override = None
+
+        if not in_day_window or not shade_enabled:
+            return
 
         if should_shade and not cover.shading_active:
             shade_pos = (
@@ -864,7 +897,7 @@ class ShutterControlManager:
         # Daytime: shading conditions met?
         if cfg.get(CONF_SHADE_ENABLED, True) and self._should_shade(
             cfg, azimuth, elevation, cloud, temperature
-        ):
+        )[0]:
             if room_type == ROOM_SLEEPING:
                 return closed_pos, MODE_CLOSED, True
             return (
@@ -882,9 +915,10 @@ class ShutterControlManager:
         elevation: float | None,
         cloud: float | None,
         temperature: float | None,
-    ) -> bool:
+    ) -> tuple[bool, str]:
+        """Return (shade?, reason). ``reason`` says which gate failed / "ok"."""
         if azimuth is None or elevation is None:
-            return False
+            return False, "no_sun_data"
 
         az_start = float(self._resolve(cfg, CONF_AZIMUTH_START, DEFAULT_AZIMUTH_START))
         az_end = float(self._resolve(cfg, CONF_AZIMUTH_END, DEFAULT_AZIMUTH_END))
@@ -892,9 +926,11 @@ class ShutterControlManager:
         el_max = float(self._resolve(cfg, CONF_ELEVATION_MAX, DEFAULT_ELEVATION_MAX))
 
         if not _azimuth_in_range(azimuth, az_start, az_end):
-            return False
-        if not (el_min <= elevation <= el_max):
-            return False
+            return False, "azimuth_out"
+        if elevation < el_min:
+            return False, "elevation_low"
+        if elevation > el_max:
+            return False, "elevation_high"
 
         # Cloud-cover gate (only if a sensor is configured): shade only when the
         # sky is clear enough, i.e. cloud cover at or below the threshold.
@@ -902,16 +938,16 @@ class ShutterControlManager:
             CONF_CLOUD_THRESHOLD, DEFAULT_CLOUD_THRESHOLD
         )
         if cloud is not None and cloud > threshold:
-            return False
+            return False, "too_cloudy"
 
         # Temperature gate (only if a sensor is configured).
         temp_threshold = self.entry.options.get(
             CONF_TEMP_THRESHOLD, DEFAULT_TEMP_THRESHOLD
         )
         if temperature is not None and temperature < temp_threshold:
-            return False
+            return False, "too_cold"
 
-        return True
+        return True, "ok"
 
     # ----------------------------------------------------------- command path
     async def _apply(self, cover: CoverState, position: int, mode: str) -> None:

@@ -122,10 +122,16 @@ Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):
    Fassadenfenster, Sonnenhöhe zwischen min/max und – falls Sensoren gesetzt – Bewölkung
    **unter** der Schwelle (klarer Himmel) sowie Temperatur über Schwelle →
    Beschattungs-Position (Schlafraum: komplett zu). Ende der Bedingung → wieder „offen".
-4. **Manuell**: Ändert sich die Rollladenposition außerhalb eines eigenen Stellbefehls,
-   wird die Automatik bis zum nächsten Auf-/Zu-Ereignis pausiert – **spätestens aber mit dem
-   Tageswechsel**. Eine abends von Hand gefahrene Rollade beschattet also am Folgetag wieder
-   normal (auch wenn „Auto-Auf morgens" aus ist).
+4. **Manuell**: Bedienst du den Rollladen von Hand, wird **nur der aktuelle Schritt**
+   unterbrochen – die manuelle Position bleibt, bis sich die Beschattungslage ändert (dann
+   übernimmt die Automatik wieder). Auto-Auf/Auto-Zu laufen unabhängig davon weiter, eine
+   abends von Hand gefahrene Rollade beschattet am Folgetag wieder normal.
+
+> **Warum beschattet es (nicht)?** Der Status-Sensor liefert das Attribut
+> `shade_block_reason` (`ok`, `elevation_high`, `elevation_low`, `azimuth_out`,
+> `too_cloudy`, `too_cold`, `no_sun_data`, `manual`, `door_open`, `outside_day_window`) sowie
+> die aktuell genutzten Werte `sun_azimuth`, `sun_elevation`, `cloud_cover`, `temperature`.
+> Die Karte zeigt den Grund zusätzlich als kleinen Hinweis an.
 
 ## Hinweise / nicht enthalten
 Bewusst nicht portiert (gegenüber dem Original-Adapter): Ferien-/Gäste-/Urlaubsmodus,

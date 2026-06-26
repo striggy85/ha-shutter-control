@@ -120,10 +120,16 @@ On every interval (and on changes of sun/sensors/shutter):
    facade window, the elevation is between min/max and – if sensors are set – cloud cover is
    **below** the threshold (clear sky) and temperature above the threshold → shade position
    (bedroom: fully closed). When the condition ends → back to "open".
-4. **Manual**: if the shutter position changes outside of our own command, automation pauses
-   until the next up/down event – but **at the latest when the day changes**. So a shutter
-   moved by hand in the evening shades again normally the next day (even with "auto-up in the
-   morning" turned off).
+4. **Manual**: operating a shutter by hand only interrupts the **current step** – the manual
+   position is kept until the shading condition changes (then automation takes over again).
+   Auto-up/auto-down keep running regardless, and a shutter moved by hand in the evening
+   shades again normally the next day.
+
+> **Why is it (not) shading?** The status sensor exposes the attribute `shade_block_reason`
+> (`ok`, `elevation_high`, `elevation_low`, `azimuth_out`, `too_cloudy`, `too_cold`,
+> `no_sun_data`, `manual`, `door_open`, `outside_day_window`) plus the values currently used:
+> `sun_azimuth`, `sun_elevation`, `cloud_cover`, `temperature`. The card also shows the
+> reason as a small hint.
 
 ## Notes / not included
 Deliberately not ported (compared to the original adapter): holiday/guest/vacation mode,

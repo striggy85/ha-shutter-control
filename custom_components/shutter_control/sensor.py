@@ -99,10 +99,16 @@ class ShutterStatusSensor(SensorEntity):
         if cover is None:
             return {}
         cfg = cover.config
+        mgr = self._manager
         return {
             "manual_override": cover.manual_override,
             "door_locked": cover.door_locked,
             "shading_active": cover.shading_active,
+            "shade_block_reason": cover.shade_reason,
+            "sun_azimuth": mgr.last_azimuth,
+            "sun_elevation": mgr.last_elevation,
+            "cloud_cover": mgr.last_cloud,
+            "temperature": mgr.last_temperature,
             "automatic_enabled": cover.automatic_enabled,
             "last_commanded_position": cover.last_commanded,
             "controlled_entities": cover.entity_ids,
