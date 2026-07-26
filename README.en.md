@@ -27,11 +27,12 @@ for Home Assistant:
   next up/down event (next day).
 - **Rooms / groups** – one configuration can control several shutters together (one switch,
   one status, one logic for the whole group).
-- **Door/window contact** – optional binary sensor per group with two switches (live in the
-  card): "Door open → up" (raise + lock automation while open) and "Door closed → restore"
-  (on close, move to the **current target state** – i.e. closed if it should be closed/shaded
-  now). The contact is **debounced** (global setting, default 10 s): a brief slam/reopen does
-  nothing.
+- **Door/window contacts** – optional per group. Two kinds of contacts (one or more each):
+  **open contacts** → shutter fully up; **tilt contacts** → shutter to a configurable
+  **tilt position** (not fully closed). If *any* contact is open the shutter stays up (open
+  takes priority over tilt). Two switches (live in the card): "Door open → up" (raise + lock
+  automation while open) and "Door closed → restore" (on close, move to the **current target
+  state**). The contacts are **debounced** (global setting, default 10 s).
 
 > Controls existing `cover.*` entities that support `set_cover_position`
 > (position 100 % = open, 0 % = closed).

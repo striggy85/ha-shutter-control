@@ -46,6 +46,8 @@ from .const import (
     CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
+    CONF_TILT_POSITION,
+    CONF_TILT_SENSOR,
     CONF_TEMP_SENSOR,
     CONF_TEMP_THRESHOLD,
     CONF_UP_EARLIEST,
@@ -72,6 +74,7 @@ from .const import (
     DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
+    DEFAULT_TILT_POSITION,
     DEFAULT_TEMP_THRESHOLD,
     DEFAULT_UP_OFFSET,
     DEFAULT_UP_TIME,
@@ -249,6 +252,14 @@ def _cover_schema(defaults: dict[str, Any]) -> vol.Schema:
     if isinstance(covers_default, str):
         covers_default = [covers_default]
 
+    # Door sensor(s): normalise a legacy single value to a list for the prefill.
+    door_default = defaults.get(CONF_DOOR_SENSOR)
+    if isinstance(door_default, str):
+        door_default = [door_default]
+    tilt_default = defaults.get(CONF_TILT_SENSOR)
+    if isinstance(tilt_default, str):
+        tilt_default = [tilt_default]
+
     schema: dict = {
         vol.Required(CONF_NAME, default=d(CONF_NAME, "")): selector.TextSelector(),
         vol.Optional(
@@ -279,10 +290,20 @@ def _cover_schema(defaults: dict[str, Any]) -> vol.Schema:
         ): selector.BooleanSelector(),
         vol.Optional(
             CONF_DOOR_SENSOR,
-            description={"suggested_value": defaults.get(CONF_DOOR_SENSOR)},
+            description={"suggested_value": door_default},
         ): selector.EntitySelector(
-            selector.EntitySelectorConfig(domain="binary_sensor")
+            selector.EntitySelectorConfig(domain="binary_sensor", multiple=True)
         ),
+        vol.Optional(
+            CONF_TILT_SENSOR,
+            description={"suggested_value": tilt_default},
+        ): selector.EntitySelector(
+            selector.EntitySelectorConfig(domain="binary_sensor", multiple=True)
+        ),
+        vol.Required(
+            CONF_TILT_POSITION,
+            default=d(CONF_TILT_POSITION, DEFAULT_TILT_POSITION),
+        ): _num(0, 100, 1, "%", selector.NumberSelectorMode.SLIDER),
     }
     # Shading window: inherited overrides.
     _azimuth_fields(schema, defaults, glob=False)

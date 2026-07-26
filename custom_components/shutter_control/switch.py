@@ -11,7 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import ShutterControlConfigEntry
-from .const import CONF_DOOR_SENSOR, DOMAIN, SIGNAL_UPDATE
+from .const import CONF_DOOR_SENSOR, CONF_TILT_SENSOR, DOMAIN, SIGNAL_UPDATE
 from .coordinator import CoverState, ShutterControlManager
 
 
@@ -35,7 +35,7 @@ async def async_setup_entry(
             )
         ]
         # Door switches only make sense when a contact is configured.
-        if cover.config.get(CONF_DOOR_SENSOR):
+        if cover.config.get(CONF_DOOR_SENSOR) or cover.config.get(CONF_TILT_SENSOR):
             entities.append(
                 ShutterToggle(
                     entry,

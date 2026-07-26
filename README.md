@@ -26,11 +26,12 @@ für Home Assistant nachbildet:
   bis zum nächsten Auf-/Zu-Ereignis (nächster Tag).
 - **Zimmer / Gruppen** – eine Konfiguration kann mehrere Rollläden gemeinsam steuern
   (ein Schalter, ein Status, eine Logik für die ganze Gruppe).
-- **Tür-/Fensterkontakt** – pro Gruppe optional ein Binärsensor mit zwei Schaltern (live in
-  der Karte): „Tür auf → hoch" (hochfahren + Automatik sperren, solange offen) und
-  „Tür zu → zurück" (beim Schließen in den **aktuellen Soll-Zustand** fahren – also zu, wenn
-  der Rollladen jetzt zu/beschattet sein müsste). Der Kontakt wird **entprellt**
-  (Grundeinstellung, Standard 10 s): kurzes Zuschlagen/Wieder-Aufgehen löst nichts aus.
+- **Tür-/Fensterkontakte** – pro Gruppe optional. Zwei Kontakt-Arten (je einer oder mehrere):
+  **Offen-Kontakte** → Rollladen ganz hoch; **Kipp-Kontakte** → Rollladen auf eine einstellbare
+  **Kipp-Position** (nicht ganz zu). Ist *irgendein* Kontakt offen, bleibt der Rollladen oben
+  (Offen hat Vorrang vor Kipp). Zwei Schalter (live in der Karte): „Tür auf → hoch"
+  (hochfahren + Automatik sperren, solange offen) und „Tür zu → zurück" (beim Schließen in den
+  **aktuellen Soll-Zustand** fahren). Die Kontakte werden **entprellt** (Standard 10 s).
 
 > Steuert vorhandene `cover.*`-Entitäten, die `set_cover_position` unterstützen
 > (Position 100 % = offen, 0 % = geschlossen).

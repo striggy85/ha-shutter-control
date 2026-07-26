@@ -46,7 +46,10 @@ CONF_FLOORS = "floors"
 CONF_ROOM_TYPE = "room_type"
 
 CONF_SHADE_ENABLED = "shade_enabled"
-CONF_DOOR_SENSOR = "door_sensor"
+CONF_DOOR_SENSOR = "door_sensor"      # "fully open" contacts -> shutter fully up
+CONF_TILT_SENSOR = "tilt_sensor"      # "tilted" contacts -> shutter to tilt position
+CONF_TILT_POSITION = "tilt_position"
+DEFAULT_TILT_POSITION = 30
 # Initial defaults for the two runtime door switches (toggled live in the card).
 DEFAULT_DOOR_ACTION_ENABLED = True
 DEFAULT_DOOR_RESTORE_ENABLED = True

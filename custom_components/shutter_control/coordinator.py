@@ -68,6 +68,8 @@ from .const import (
     CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
+    CONF_TILT_POSITION,
+    CONF_TILT_SENSOR,
     CONF_TEMP_SENSOR,
     CONF_TEMP_THRESHOLD,
     CONF_UP_EARLIEST,
@@ -94,6 +96,7 @@ from .const import (
     DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
+    DEFAULT_TILT_POSITION,
     DEFAULT_TEMP_THRESHOLD,
     DEFAULT_UP_OFFSET,
     DEFAULT_UP_TIME,
@@ -184,10 +187,12 @@ class CoverState:
     door_action_enabled: bool = True   # raise + lock while contact is open
     door_restore_enabled: bool = True  # on close: go to the current target state
     door_locked: bool = False
+    door_action_state: str | None = None  # which state we acted on: open | tilt
     # Debounce: act only on a contact state that stayed stable long enough.
-    door_raw: bool | None = None
+    # State is one of "open", "tilt", "closed" (or None when unknown).
+    door_raw: str | None = None
     door_changed_at: datetime | None = None
-    door_effective: bool | None = None
+    door_effective: str | None = None
 
     # Edge tracking so up/down fire only once per day.
     last_up_date: object | None = None
@@ -281,9 +286,12 @@ class ShutterControlManager:
             tracked.add(sensor)
         for cover in self.covers.values():
             tracked.update(cover.entity_ids)
-            door = cover.config.get(CONF_DOOR_SENSOR)
-            if door:
-                tracked.add(door)
+            for key in (CONF_DOOR_SENSOR, CONF_TILT_SENSOR):
+                contacts = cover.config.get(key)
+                if isinstance(contacts, str):
+                    tracked.add(contacts)
+                elif contacts:
+                    tracked.update(contacts)
 
         self._unsub_state = async_track_state_change_event(
             self.hass, list(tracked), self._handle_state_event
@@ -368,31 +376,49 @@ class ShutterControlManager:
                 return None
         return self._read_float(entity_id)
 
-    def _door_open(self, cfg: dict) -> bool | None:
-        """Door/window contact state for this group.
+    def _sensor_any_on(self, sensors) -> tuple[bool, bool]:
+        """Return (any_on, any_known) for a binary sensor entity id or list."""
+        if not sensors:
+            return False, False
+        if isinstance(sensors, str):
+            sensors = [sensors]
+        any_on = False
+        any_known = False
+        for entity_id in sensors:
+            state = self.hass.states.get(entity_id)
+            if state is None or state.state in ("unknown", "unavailable"):
+                continue
+            any_known = True
+            if state.state == "on":  # "on" = open/tilted
+                any_on = True
+        return any_on, any_known
 
-        Returns True/False when a sensor is configured and readable, or None
-        when no sensor is set / the state is unknown.
+    def _door_state(self, cfg: dict) -> str | None:
+        """Aggregated contact state: "open" | "tilt" | "closed" | None.
+
+        A fully-open contact ("open") takes priority over a tilt contact
+        ("tilt"). "closed" means all readable contacts are closed; None means no
+        sensor is configured / none is readable.
         """
-        entity_id = cfg.get(CONF_DOOR_SENSOR)
-        if not entity_id:
-            return None
-        state = self.hass.states.get(entity_id)
-        if state is None or state.state in ("unknown", "unavailable"):
-            return None
-        # binary_sensor "on" = open (door/window/opening device classes).
-        return state.state == "on"
+        open_on, open_known = self._sensor_any_on(cfg.get(CONF_DOOR_SENSOR))
+        if open_on:
+            return "open"
+        tilt_on, tilt_known = self._sensor_any_on(cfg.get(CONF_TILT_SENSOR))
+        if tilt_on:
+            return "tilt"
+        return "closed" if (open_known or tilt_known) else None
 
     def _debounced_door(
         self, cover: CoverState, cfg: dict, delay: float
-    ) -> bool | None:
-        """Debounced contact state: only changes after staying stable `delay` s.
+    ) -> str | None:
+        """Debounced contact state ("open"/"tilt"/"closed"): changes only after
+        staying stable for `delay` s.
 
         The first reading is taken immediately; later changes must persist for
         `delay` seconds before they take effect (so a brief slam/reopen is
         ignored).
         """
-        raw = self._door_open(cfg)
+        raw = self._door_state(cfg)
         if raw is None:
             return cover.door_effective  # keep last known state
         now_utc = dt_util.utcnow()
@@ -565,19 +591,29 @@ class ShutterControlManager:
         # The contact is debounced: it must stay stable for the configured delay
         # before we act (ignores a door briefly falling shut / popping open).
         delay = self.entry.options.get(CONF_DOOR_DELAY, DEFAULT_DOOR_DELAY)
-        door_open = self._debounced_door(cover, cfg, delay)
-        if door_open is True and cover.door_action_enabled:
-            if not cover.door_locked:
+        door_state = self._debounced_door(cover, cfg, delay)
+        if door_state in ("open", "tilt") and cover.door_action_enabled:
+            # "open" contact -> fully up; "tilt" contact -> tilt position.
+            if door_state == "open":
+                target = open_pos
+            else:
+                target = int(
+                    cfg.get(CONF_TILT_POSITION, DEFAULT_TILT_POSITION)
+                )
+            # (Re)apply when we newly lock or the contact state changes.
+            if not cover.door_locked or cover.door_action_state != door_state:
                 cover.door_locked = True
+                cover.door_action_state = door_state
                 cover.manual_override = False
                 cover.shading_active = False
-                await self._apply(cover, open_pos, MODE_DOOR)
+                await self._apply(cover, target, MODE_DOOR)
             cover.mode = MODE_DOOR
             cover.shade_reason = "door_open"
             return
         if cover.door_locked:
-            # Contact closed (or door action switched off) -> unlock.
+            # All contacts closed (or door action switched off) -> unlock.
             cover.door_locked = False
+            cover.door_action_state = None
             if cover.door_restore_enabled:
                 # Move to where the shutter should be *now* (closed if it should
                 # be closed, shaded if shading applies, otherwise open).
