@@ -174,11 +174,10 @@ class CoverState:
     # Reported mode for the status sensor.
     mode: str = MODE_IDLE
 
-    # Manual override: only suppresses the current shading step; released when the
-    # shading condition changes. Cleared by up/down edges and on a new day.
+    # Manual override: pauses shading until the next up/down edge or a new day.
+    # (Auto up/down edges run regardless, so scheduled moves still happen.)
     manual_override: bool = False
     manual_override_date: object | None = None
-    shade_at_override: bool | None = None  # should_shade value when override began
 
     # Why shading is (not) happening right now - for the dashboard / diagnostics.
     shade_reason: str = ""
@@ -506,8 +505,6 @@ class ShutterControlManager:
                     cover.name,
                     position,
                 )
-                # Fresh override -> capture the shading condition on next eval.
-                cover.shade_at_override = None
             cover.manual_override = True
             cover.manual_override_date = dt_util.now().date()
             cover.mode = MODE_MANUAL
@@ -675,6 +672,14 @@ class ShutterControlManager:
             await self._apply(cover, closed_pos, MODE_CLOSED)
             return
 
+        # Manual override pauses shading until the next up/down edge (which run
+        # above, regardless) or the day change. This avoids the shutter fighting
+        # a manual position when a gate (e.g. elevation) flickers at its bound.
+        if cover.manual_override:
+            cover.mode = MODE_MANUAL
+            cover.shade_reason = "manual"
+            return
+
         # ---- Continuous shading (only during the day, between up & down) -
         in_day_window = up_dt <= now < down_dt
         shade_enabled = cfg.get(CONF_SHADE_ENABLED, True)
@@ -686,19 +691,6 @@ class ShutterControlManager:
             should_shade = False
             reason = "outside_day_window" if not in_day_window else "shade_disabled"
         cover.shade_reason = reason
-
-        # Manual override only suppresses the *current* shading step: it keeps the
-        # manually set position until the shading condition changes, then releases
-        # so automation resumes. (Auto up/down already run regardless, above.)
-        if cover.manual_override:
-            if cover.shade_at_override is None:
-                cover.shade_at_override = should_shade
-            if should_shade == cover.shade_at_override:
-                cover.mode = MODE_MANUAL
-                cover.shade_reason = "manual"
-                return
-            cover.manual_override = False
-            cover.shade_at_override = None
 
         if not in_day_window or not shade_enabled:
             return
