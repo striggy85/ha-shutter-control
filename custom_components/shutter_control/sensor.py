@@ -103,6 +103,8 @@ class ShutterStatusSensor(SensorEntity):
         return {
             "manual_override": cover.manual_override,
             "door_locked": cover.door_locked,
+            "door_contact": cover.door_effective,
+            "door_contacts_on": self._manager.door_contacts_on(cover),
             "shading_active": cover.shading_active,
             "shade_block_reason": cover.shade_reason,
             "sun_azimuth": mgr.last_azimuth,

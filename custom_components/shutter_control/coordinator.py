@@ -393,6 +393,22 @@ class ShutterControlManager:
                 any_on = True
         return any_on, any_known
 
+    def door_contacts_on(self, cover: CoverState) -> list[str]:
+        """Diagnostics: which configured contacts currently report "on"."""
+        cfg = cover.config
+        result: list[str] = []
+        for role, key in (("open", CONF_DOOR_SENSOR), ("tilt", CONF_TILT_SENSOR)):
+            sensors = cfg.get(key)
+            if not sensors:
+                continue
+            if isinstance(sensors, str):
+                sensors = [sensors]
+            for entity_id in sensors:
+                state = self.hass.states.get(entity_id)
+                if state is not None and state.state == "on":
+                    result.append(f"{role}: {entity_id}")
+        return result
+
     def _door_state(self, cfg: dict) -> str | None:
         """Aggregated contact state: "open" | "tilt" | "closed" | None.
 
