@@ -613,13 +613,19 @@ class ShutterControlManager:
                 target = int(
                     cfg.get(CONF_TILT_POSITION, DEFAULT_TILT_POSITION)
                 )
-            # (Re)apply when we newly lock or the contact state changes.
+            # Safety: an open/tilt contact may only ever RAISE the shutter, never
+            # lower it. Only covers currently below the target are moved (up to
+            # the target); a shutter already open enough (incl. 100%) stays put.
+            # This makes it impossible to close onto an open/tilted window,
+            # regardless of the configured tilt position.
             if not cover.door_locked or cover.door_action_state != door_state:
                 cover.door_locked = True
                 cover.door_action_state = door_state
                 cover.manual_override = False
                 cover.shading_active = False
-                await self._apply(cover, target, MODE_DOOR)
+                raise_ids = self._members_below(cover, target)
+                if raise_ids:
+                    await self._apply(cover, target, MODE_DOOR, entity_ids=raise_ids)
             cover.mode = MODE_DOOR
             cover.shade_reason = "door_open"
             return
@@ -994,18 +1000,28 @@ class ShutterControlManager:
         return True, "ok"
 
     # ----------------------------------------------------------- command path
-    async def _apply(self, cover: CoverState, position: int, mode: str) -> None:
-        """Send every cover in the group to ``position`` unless already there."""
+    async def _apply(
+        self,
+        cover: CoverState,
+        position: int,
+        mode: str,
+        entity_ids: list[str] | None = None,
+    ) -> None:
+        """Send the covers to ``position`` unless already there.
+
+        ``entity_ids`` restricts the move to a subset of the group's covers
+        (used e.g. to only raise the members that are below a target).
+        """
         position = max(0, min(100, int(position)))
-        entity_ids = cover.entity_ids
-        if not entity_ids:
+        targets = entity_ids if entity_ids is not None else cover.entity_ids
+        if not targets:
             return
 
         cover.last_commanded = position
         cover.mode = mode
 
-        # Skip the service call if all known members are already in position.
-        if self._all_at_position(cover, position):
+        # Skip the service call if all addressed members are already in position.
+        if self._all_at_position(targets, position):
             return
 
         cover.ignore_until = dt_util.utcnow() + timedelta(
@@ -1014,24 +1030,24 @@ class ShutterControlManager:
         _LOGGER.debug(
             "Moving %s (%d cover(s)) to %s%% (mode=%s)",
             cover.name,
-            len(entity_ids),
+            len(targets),
             position,
             mode,
         )
         await self.hass.services.async_call(
             COVER_DOMAIN,
             SERVICE_SET_COVER_POSITION,
-            {ATTR_ENTITY_ID: entity_ids, "position": position},
+            {ATTR_ENTITY_ID: targets, "position": position},
             blocking=False,
         )
 
-    def _all_at_position(self, cover: CoverState, position: int) -> bool:
-        """True if every member with a known position is already at ``position``.
+    def _all_at_position(self, entity_ids: list[str], position: int) -> bool:
+        """True if every addressed member with a known position is already there.
 
         Returns False when no member position is known, so we still command.
         """
         any_known = False
-        for entity_id in cover.entity_ids:
+        for entity_id in entity_ids:
             state = self.hass.states.get(entity_id)
             if state is None:
                 continue
@@ -1045,6 +1061,26 @@ class ShutterControlManager:
                 continue
             any_known = True
         return any_known
+
+    def _members_below(self, cover: CoverState, target: int) -> list[str]:
+        """Covers whose known current position is below ``target`` (need raising).
+
+        Members already at/above the target - and members with an unknown
+        position - are left untouched, so a contact can never lower a shutter.
+        """
+        result: list[str] = []
+        for entity_id in cover.entity_ids:
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            pos = state.attributes.get(ATTR_POSITION)
+            try:
+                pos = int(pos)
+            except (ValueError, TypeError):
+                continue
+            if pos < target - POSITION_TOLERANCE:
+                result.append(entity_id)
+        return result
 
     def _resolve_targets(self, cover: CoverState) -> list[str]:
         """Resolve the cover entities from explicit list + areas + floors."""

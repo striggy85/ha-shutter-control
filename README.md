@@ -28,10 +28,13 @@ für Home Assistant nachbildet:
   (ein Schalter, ein Status, eine Logik für die ganze Gruppe).
 - **Tür-/Fensterkontakte** – pro Gruppe optional. Zwei Kontakt-Arten (je einer oder mehrere):
   **Offen-Kontakte** → Rollladen ganz hoch; **Kipp-Kontakte** → Rollladen auf eine einstellbare
-  **Kipp-Position** (nicht ganz zu). Ist *irgendein* Kontakt offen, bleibt der Rollladen oben
-  (Offen hat Vorrang vor Kipp). Zwei Schalter (live in der Karte): „Tür auf → hoch"
-  (hochfahren + Automatik sperren, solange offen) und „Tür zu → zurück" (beim Schließen in den
-  **aktuellen Soll-Zustand** fahren). Die Kontakte werden **entprellt** (Standard 10 s).
+  **Kipp-Position**. **Sicherheit:** Ein offener/gekippter Kontakt kann den Rollladen **nur
+  nach oben** bewegen – nie nach unten. Steht er bereits offen genug (≥ Ziel-Position, insb.
+  bei 100 %), **bewegt er sich nicht**. Ein Zufahren auf ein offenes/gekipptes Fenster ist
+  damit ausgeschlossen – unabhängig von der eingestellten Kipp-Position. Zwei Schalter (live in
+  der Karte): „Tür auf → hoch" (hochfahren + Automatik sperren, solange offen) und
+  „Tür zu → zurück" (erst **beim Schließen** in den aktuellen Soll-Zustand fahren – dann ist es
+  sicher). Die Kontakte werden **entprellt** (Standard 10 s).
 
 > Steuert vorhandene `cover.*`-Entitäten, die `set_cover_position` unterstützen
 > (Position 100 % = offen, 0 % = geschlossen).

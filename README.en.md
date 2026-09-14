@@ -29,10 +29,12 @@ for Home Assistant:
   one status, one logic for the whole group).
 - **Door/window contacts** – optional per group. Two kinds of contacts (one or more each):
   **open contacts** → shutter fully up; **tilt contacts** → shutter to a configurable
-  **tilt position** (not fully closed). If *any* contact is open the shutter stays up (open
-  takes priority over tilt). Two switches (live in the card): "Door open → up" (raise + lock
-  automation while open) and "Door closed → restore" (on close, move to the **current target
-  state**). The contacts are **debounced** (global setting, default 10 s).
+  **tilt position**. **Safety:** an open/tilted contact can only ever **raise** the shutter,
+  never lower it. If it is already open enough (≥ the target, especially at 100 %) it **does not
+  move**. Closing onto an open/tilted window is therefore impossible, regardless of the
+  configured tilt position. Two switches (live in the card): "Door open → up" (raise + lock
+  automation while open) and "Door closed → restore" (only **on close** move to the current
+  target state — safe then). The contacts are **debounced** (global setting, default 10 s).
 
 > Controls existing `cover.*` entities that support `set_cover_position`
 > (position 100 % = open, 0 % = closed).
