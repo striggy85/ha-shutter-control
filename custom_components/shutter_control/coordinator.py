@@ -52,6 +52,7 @@ from .const import (
     CONF_COVER_ENTITY,
     CONF_DOOR_DELAY,
     CONF_DOOR_SENSOR,
+    CONF_MANUAL_TIMEOUT,
     CONF_DOWN_EARLIEST,
     CONF_DOWN_LATEST,
     CONF_DOWN_OFFSET,
@@ -90,6 +91,7 @@ from .const import (
     DEFAULT_DOWN_TRIGGER,
     DEFAULT_ELEVATION_MAX,
     DEFAULT_ELEVATION_MIN,
+    DEFAULT_MANUAL_TIMEOUT,
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
     DEFAULT_SHADE_KEEP_UNTIL_DOWN,
@@ -178,6 +180,7 @@ class CoverState:
     # (Auto up/down edges run regardless, so scheduled moves still happen.)
     manual_override: bool = False
     manual_override_date: object | None = None
+    manual_override_at: datetime | None = None  # when the manual move happened (utc)
 
     # Why shading is (not) happening right now - for the dashboard / diagnostics.
     shade_reason: str = ""
@@ -507,6 +510,7 @@ class ShutterControlManager:
                 )
             cover.manual_override = True
             cover.manual_override_date = dt_util.now().date()
+            cover.manual_override_at = dt_util.utcnow()
             cover.mode = MODE_MANUAL
 
     # ------------------------------------------------------------- public API
@@ -584,15 +588,28 @@ class ShutterControlManager:
         tzinfo = now.tzinfo
         up_dt, down_dt = self._compute_up_down(cfg, today, tzinfo)
 
-        # A manual override only lasts for the day it was made, so a shutter
-        # adjusted by hand in the evening still shades again the next day.
-        if (
-            cover.manual_override
-            and cover.manual_override_date is not None
-            and cover.manual_override_date != today
-        ):
-            cover.manual_override = False
-            cover.manual_override_date = None
+        # A manual override lasts only until (a) the next up/down edge, (b) the
+        # day changes, or (c) the configured timeout elapses. The timeout lets a
+        # hand-raised shutter (e.g. getting up) resume shading a while later,
+        # without tying it to a fixed clock time.
+        if cover.manual_override:
+            timeout_min = self.entry.options.get(
+                CONF_MANUAL_TIMEOUT, DEFAULT_MANUAL_TIMEOUT
+            )
+            expired_day = (
+                cover.manual_override_date is not None
+                and cover.manual_override_date != today
+            )
+            expired_timeout = (
+                timeout_min
+                and cover.manual_override_at is not None
+                and (dt_util.utcnow() - cover.manual_override_at).total_seconds()
+                >= timeout_min * 60
+            )
+            if expired_day or expired_timeout:
+                cover.manual_override = False
+                cover.manual_override_date = None
+                cover.manual_override_at = None
 
         # Forecast data for the dashboard card (next up/down, predicted shading).
         self._update_forecast(cover, now, up_dt, down_dt)

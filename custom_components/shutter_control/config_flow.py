@@ -39,6 +39,7 @@ from .const import (
     CONF_ELEVATION_MAX,
     CONF_ELEVATION_MIN,
     CONF_NAME,
+    CONF_MANUAL_TIMEOUT,
     CONF_OPEN_POSITION,
     CONF_ROOM_TYPE,
     CONF_SHADE_ENABLED,
@@ -68,6 +69,7 @@ from .const import (
     DEFAULT_DOWN_TRIGGER,
     DEFAULT_ELEVATION_MAX,
     DEFAULT_ELEVATION_MIN,
+    DEFAULT_MANUAL_TIMEOUT,
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
     DEFAULT_SHADE_KEEP_UNTIL_DOWN,
@@ -222,6 +224,10 @@ def _global_schema(defaults: dict[str, Any]) -> vol.Schema:
                 CONF_SHADE_KEEP_UNTIL_DOWN, DEFAULT_SHADE_KEEP_UNTIL_DOWN
             ),
         ): selector.BooleanSelector(),
+        vol.Optional(
+            CONF_MANUAL_TIMEOUT,
+            default=defaults.get(CONF_MANUAL_TIMEOUT, DEFAULT_MANUAL_TIMEOUT),
+        ): _num(0, 480, 5, "min"),
         vol.Optional(
             CONF_DOOR_DELAY,
             default=defaults.get(CONF_DOOR_DELAY, DEFAULT_DOOR_DELAY),

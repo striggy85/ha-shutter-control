@@ -23,8 +23,10 @@ for Home Assistant:
   weekend.
 - **Living-room vs. bedroom logic** – bedrooms close fully for shading/in the evening,
   living rooms only go to the shade position.
-- **Manual override** – if someone moves a shutter by hand, automation pauses until the
-  next up/down event (next day).
+- **Manual override** – if someone moves a shutter by hand, automation pauses; it ends
+  automatically after a configurable **timeout** (default 60 min, relative to the manual move –
+  not a clock time), at the latest at the next up/down event or day change; then shading
+  resumes per its rules. (0 min = only until the next up/down.)
 - **Rooms / groups** – one configuration can control several shutters together (one switch,
   one status, one logic for the whole group).
 - **Door/window contacts** – optional per group. Two kinds of contacts (one or more each):
@@ -123,10 +125,11 @@ On every interval (and on changes of sun/sensors/shutter):
    facade window, the elevation is between min/max and – if sensors are set – cloud cover is
    **below** the threshold (clear sky) and temperature above the threshold → shade position
    (bedroom: fully closed). When the condition ends → back to "open".
-4. **Manual**: operating a shutter by hand only interrupts the **current step** – the manual
-   position is kept until the shading condition changes (then automation takes over again).
-   Auto-up/auto-down keep running regardless, and a shutter moved by hand in the evening
-   shades again normally the next day.
+4. **Manual**: operating a shutter by hand pauses shading – until the configured **timeout**
+   elapses (default 60 min, relative – not a clock time), at the latest at the next up/down
+   event or day change. Then the shading rules take over again (e.g. get up in the morning,
+   raise the shutter → it shades again by itself later). Auto-up/auto-down keep running
+   regardless.
 
 > **Why is it (not) shading?** The status sensor exposes the attribute `shade_block_reason`
 > (`ok`, `elevation_high`, `elevation_low`, `azimuth_out`, `too_cloudy`, `too_cold`,

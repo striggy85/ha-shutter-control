@@ -22,8 +22,11 @@ für Home Assistant nachbildet:
 - **Auto-Auf morgens / Auto-Zu abends** – getrennte Zeiten für Wochentag und Wochenende.
 - **Wohn- vs. Schlafraum-Logik** – Schlafräume fahren bei Beschattung/abends komplett zu,
   Wohnräume nur auf die Beschattungs-Position.
-- **Manuelle Übersteuerung** – fährt jemand den Rollladen von Hand, pausiert die Automatik
-  bis zum nächsten Auf-/Zu-Ereignis (nächster Tag).
+- **Manuelle Übersteuerung** – fährt jemand den Rollladen von Hand, pausiert die Automatik.
+  Sie endet automatisch nach einer einstellbaren **Zeitspanne** (Standard 60 Min, relativ zum
+  Handbetrieb – keine feste Uhrzeit), spätestens beim nächsten Auf-/Zu-Ereignis oder
+  Tageswechsel; danach greift die Beschattung wieder nach ihren Regeln. (0 Min = nur bis zum
+  nächsten Auf-/Zu.)
 - **Zimmer / Gruppen** – eine Konfiguration kann mehrere Rollläden gemeinsam steuern
   (ein Schalter, ein Status, eine Logik für die ganze Gruppe).
 - **Tür-/Fensterkontakte** – pro Gruppe optional. Zwei Kontakt-Arten (je einer oder mehrere):
@@ -126,10 +129,11 @@ Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):
    Fassadenfenster, Sonnenhöhe zwischen min/max und – falls Sensoren gesetzt – Bewölkung
    **unter** der Schwelle (klarer Himmel) sowie Temperatur über Schwelle →
    Beschattungs-Position (Schlafraum: komplett zu). Ende der Bedingung → wieder „offen".
-4. **Manuell**: Bedienst du den Rollladen von Hand, wird **nur der aktuelle Schritt**
-   unterbrochen – die manuelle Position bleibt, bis sich die Beschattungslage ändert (dann
-   übernimmt die Automatik wieder). Auto-Auf/Auto-Zu laufen unabhängig davon weiter, eine
-   abends von Hand gefahrene Rollade beschattet am Folgetag wieder normal.
+4. **Manuell**: Bedienst du den Rollladen von Hand, pausiert die Beschattung – bis die
+   eingestellte **Zeitspanne** abgelaufen ist (Standard 60 Min, relativ – keine Uhrzeit),
+   spätestens beim nächsten Auf-/Zu-Ereignis oder Tageswechsel. Danach greifen die
+   Beschattungs-Regeln wieder (z. B.: morgens aufstehen, hochfahren → später beschattet es
+   automatisch wieder). Auto-Auf/Auto-Zu laufen unabhängig davon weiter.
 
 > **Warum beschattet es (nicht)?** Der Status-Sensor liefert das Attribut
 > `shade_block_reason` (`ok`, `elevation_high`, `elevation_low`, `azimuth_out`,
