@@ -125,6 +125,12 @@ _LOGGER = logging.getLogger(__name__)
 COVER_DOMAIN = "cover"
 ATTR_POSITION = "current_position"
 
+# Hysteresis margins: once shading is active it only stops when the sun/weather
+# is clearly outside the window, so the decision doesn't flicker at the boundary.
+HYST_DEG = 4.0       # azimuth / elevation degrees
+HYST_CLOUD = 10.0    # cloud cover %
+HYST_TEMP = 1.0      # °C
+
 
 def _parse_time(value: str | None, default: str) -> time:
     """Parse a ``HH:MM:SS`` string into a ``time`` object."""
@@ -176,11 +182,14 @@ class CoverState:
     # Reported mode for the status sensor.
     mode: str = MODE_IDLE
 
-    # Manual override: pauses shading until the next up/down edge or a new day.
-    # (Auto up/down edges run regardless, so scheduled moves still happen.)
+    # Manual override: pauses shading only for the CURRENT program. It is
+    # released as soon as a new program begins (shading condition transitions),
+    # and always at the next up/down edge or a new day. (Auto up/down edges run
+    # regardless.) An optional timeout can additionally cap it.
     manual_override: bool = False
     manual_override_date: object | None = None
     manual_override_at: datetime | None = None  # when the manual move happened (utc)
+    shade_at_override: bool | None = None  # shade condition captured at override
 
     # Why shading is (not) happening right now - for the dashboard / diagnostics.
     shade_reason: str = ""
@@ -202,6 +211,9 @@ class CoverState:
 
     # Continuous shading state (so we only command on change).
     shading_active: bool = False
+    # Hysteresis state: the debounced "should shade" condition (avoids flicker
+    # at the elevation/azimuth/cloud boundary).
+    shade_condition: bool = False
 
     # Set on the first evaluation so we don't replay already-passed up/down
     # events (and move shutters) right after a Home Assistant restart.
@@ -508,6 +520,8 @@ class ShutterControlManager:
                     cover.name,
                     position,
                 )
+                # Fresh override -> capture the shading condition on next eval.
+                cover.shade_at_override = None
             cover.manual_override = True
             cover.manual_override_date = dt_util.now().date()
             cover.manual_override_at = dt_util.utcnow()
@@ -695,25 +709,35 @@ class ShutterControlManager:
             await self._apply(cover, closed_pos, MODE_CLOSED)
             return
 
-        # Manual override pauses shading until the next up/down edge (which run
-        # above, regardless) or the day change. This avoids the shutter fighting
-        # a manual position when a gate (e.g. elevation) flickers at its bound.
-        if cover.manual_override:
-            cover.mode = MODE_MANUAL
-            cover.shade_reason = "manual"
-            return
-
         # ---- Continuous shading (only during the day, between up & down) -
         in_day_window = up_dt <= now < down_dt
         shade_enabled = cfg.get(CONF_SHADE_ENABLED, True)
         if in_day_window and shade_enabled:
-            should_shade, reason = self._should_shade(
-                cfg, azimuth, elevation, cloud, temperature
+            should_shade, reason = self._shade_wanted(
+                cover, cfg, azimuth, elevation, cloud, temperature
             )
         else:
             should_shade = False
+            cover.shade_condition = False
             reason = "outside_day_window" if not in_day_window else "shade_disabled"
         cover.shade_reason = reason
+
+        # Manual override applies only to the CURRENT program: it holds the manual
+        # position until the shading condition changes (a new program begins),
+        # then releases so automation resumes. Up/down edges (above) always run,
+        # so e.g. "raise in the morning -> shading at noon" and "override shading
+        # -> evening down still closes" both work. Hysteresis keeps the condition
+        # stable so this doesn't flicker at a threshold.
+        if cover.manual_override:
+            if cover.shade_at_override is None:
+                cover.shade_at_override = should_shade
+            if should_shade == cover.shade_at_override:
+                cover.mode = MODE_MANUAL
+                cover.shade_reason = "manual"
+                return
+            cover.manual_override = False
+            cover.manual_override_at = None
+            cover.shade_at_override = None
 
         if not in_day_window or not shade_enabled:
             return
@@ -982,21 +1006,28 @@ class ShutterControlManager:
         elevation: float | None,
         cloud: float | None,
         temperature: float | None,
+        relaxed: bool = False,
     ) -> tuple[bool, str]:
-        """Return (shade?, reason). ``reason`` says which gate failed / "ok"."""
+        """Return (shade?, reason). ``reason`` says which gate failed / "ok".
+
+        ``relaxed`` widens every gate by the hysteresis margin - used to decide
+        whether an *already active* shading should keep running, so the decision
+        doesn't flicker right at a threshold.
+        """
         if azimuth is None or elevation is None:
             return False, "no_sun_data"
 
+        deg = HYST_DEG if relaxed else 0.0
         az_start = float(self._resolve(cfg, CONF_AZIMUTH_START, DEFAULT_AZIMUTH_START))
         az_end = float(self._resolve(cfg, CONF_AZIMUTH_END, DEFAULT_AZIMUTH_END))
         el_min = float(self._resolve(cfg, CONF_ELEVATION_MIN, DEFAULT_ELEVATION_MIN))
         el_max = float(self._resolve(cfg, CONF_ELEVATION_MAX, DEFAULT_ELEVATION_MAX))
 
-        if not _azimuth_in_range(azimuth, az_start, az_end):
+        if not _azimuth_in_range(azimuth, az_start - deg, az_end + deg):
             return False, "azimuth_out"
-        if elevation < el_min:
+        if elevation < el_min - deg:
             return False, "elevation_low"
-        if elevation > el_max:
+        if elevation > el_max + deg:
             return False, "elevation_high"
 
         # Cloud-cover gate (only if a sensor is configured): shade only when the
@@ -1004,17 +1035,50 @@ class ShutterControlManager:
         threshold = self.entry.options.get(
             CONF_CLOUD_THRESHOLD, DEFAULT_CLOUD_THRESHOLD
         )
-        if cloud is not None and cloud > threshold:
+        if cloud is not None and cloud > threshold + (HYST_CLOUD if relaxed else 0.0):
             return False, "too_cloudy"
 
         # Temperature gate (only if a sensor is configured).
         temp_threshold = self.entry.options.get(
             CONF_TEMP_THRESHOLD, DEFAULT_TEMP_THRESHOLD
         )
-        if temperature is not None and temperature < temp_threshold:
+        if temperature is not None and temperature < temp_threshold - (
+            HYST_TEMP if relaxed else 0.0
+        ):
             return False, "too_cold"
 
         return True, "ok"
+
+    def _shade_wanted(
+        self,
+        cover: CoverState,
+        cfg: dict,
+        azimuth: float | None,
+        elevation: float | None,
+        cloud: float | None,
+        temperature: float | None,
+    ) -> tuple[bool, str]:
+        """Hysteresis-stable shading condition + reason.
+
+        Turns on with the strict thresholds, turns off only once clearly outside
+        (relaxed thresholds), so it does not flicker at the boundary. The result
+        also defines the "current program" for the manual override.
+        """
+        strict_on, reason = self._should_shade(
+            cfg, azimuth, elevation, cloud, temperature
+        )
+        if cover.shade_condition:
+            relaxed_on, relaxed_reason = self._should_shade(
+                cfg, azimuth, elevation, cloud, temperature, relaxed=True
+            )
+            if not relaxed_on:
+                cover.shade_condition = False
+                return False, relaxed_reason
+            return True, "ok"
+        if strict_on:
+            cover.shade_condition = True
+            return True, "ok"
+        return False, reason
 
     # ----------------------------------------------------------- command path
     async def _apply(

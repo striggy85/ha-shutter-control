@@ -23,10 +23,11 @@ for Home Assistant:
   weekend.
 - **Living-room vs. bedroom logic** – bedrooms close fully for shading/in the evening,
   living rooms only go to the shade position.
-- **Manual override** – if someone moves a shutter by hand, automation pauses; it ends
-  automatically after a configurable **timeout** (default 60 min, relative to the manual move –
-  not a clock time), at the latest at the next up/down event or day change; then shading
-  resumes per its rules. (0 min = only until the next up/down.)
+- **Manual override** – applies only to the **current program**: a hand move is kept until a
+  **new program** begins, then automation takes over again. Examples: shading is running →
+  overridden → the **evening** close still runs; raised in the **morning** → shading kicks in
+  at **noon**. Auto up/down run regardless. Optional extra time cap (global setting, default
+  0 = off).
 - **Rooms / groups** – one configuration can control several shutters together (one switch,
   one status, one logic for the whole group).
 - **Door/window contacts** – optional per group. Two kinds of contacts (one or more each):
@@ -125,11 +126,12 @@ On every interval (and on changes of sun/sensors/shutter):
    facade window, the elevation is between min/max and – if sensors are set – cloud cover is
    **below** the threshold (clear sky) and temperature above the threshold → shade position
    (bedroom: fully closed). When the condition ends → back to "open".
-4. **Manual**: operating a shutter by hand pauses shading – until the configured **timeout**
-   elapses (default 60 min, relative – not a clock time), at the latest at the next up/down
-   event or day change. Then the shading rules take over again (e.g. get up in the morning,
-   raise the shutter → it shades again by itself later). Auto-up/auto-down keep running
-   regardless.
+4. **Manual**: operating a shutter by hand applies only to the **current program** – the
+   override is released as soon as a new program begins (the shading condition changes), at
+   the latest at the next up/down event or day change. So after "raise in the morning" it
+   shades again at noon, and "override shading" does not prevent the evening close. A
+   **hysteresis** keeps the shading decision stable at the threshold (no flicker). Optional
+   extra time cap (default 0 = off).
 
 > **Why is it (not) shading?** The status sensor exposes the attribute `shade_block_reason`
 > (`ok`, `elevation_high`, `elevation_low`, `azimuth_out`, `too_cloudy`, `too_cold`,

@@ -34,9 +34,10 @@ DEFAULT_UPDATE_INTERVAL = 60  # seconds
 DEFAULT_SHADE_ONLY_LOWER = True
 # Keep the shade position once shading engaged (don't reopen); close fully at down time.
 DEFAULT_SHADE_KEEP_UNTIL_DOWN = False
-# Manual override auto-expires this many minutes after the manual move, then
-# automation (incl. shading) resumes. 0 = only reset at next up/down or new day.
-DEFAULT_MANUAL_TIMEOUT = 60
+# Optional extra cap: manual override also expires this many minutes after the
+# manual move. 0 = off (primary behaviour is program-based: the override is
+# released when the shading condition changes / at the next up/down / new day).
+DEFAULT_MANUAL_TIMEOUT = 0
 # Door/window contact must be stable this long (s) before acting (debounce).
 DEFAULT_DOOR_DELAY = 10
 

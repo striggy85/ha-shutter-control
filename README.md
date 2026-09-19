@@ -22,11 +22,11 @@ für Home Assistant nachbildet:
 - **Auto-Auf morgens / Auto-Zu abends** – getrennte Zeiten für Wochentag und Wochenende.
 - **Wohn- vs. Schlafraum-Logik** – Schlafräume fahren bei Beschattung/abends komplett zu,
   Wohnräume nur auf die Beschattungs-Position.
-- **Manuelle Übersteuerung** – fährt jemand den Rollladen von Hand, pausiert die Automatik.
-  Sie endet automatisch nach einer einstellbaren **Zeitspanne** (Standard 60 Min, relativ zum
-  Handbetrieb – keine feste Uhrzeit), spätestens beim nächsten Auf-/Zu-Ereignis oder
-  Tageswechsel; danach greift die Beschattung wieder nach ihren Regeln. (0 Min = nur bis zum
-  nächsten Auf-/Zu.)
+- **Manuelle Übersteuerung** – gilt nur für das **aktuelle Programm**: Fährst du von Hand,
+  bleibt diese Position, bis ein **neues Programm** beginnt – dann übernimmt die Automatik
+  wieder. Beispiele: Beschattung läuft → übersteuert → **abends** fährt sie normal zu;
+  morgens hochgefahren → **mittags** greift die Beschattung. Auto-Auf/Auto-Zu laufen ohnehin
+  unabhängig. Optional zusätzlich ein Zeit-Limit (Grundeinstellung, Standard 0 = aus).
 - **Zimmer / Gruppen** – eine Konfiguration kann mehrere Rollläden gemeinsam steuern
   (ein Schalter, ein Status, eine Logik für die ganze Gruppe).
 - **Tür-/Fensterkontakte** – pro Gruppe optional. Zwei Kontakt-Arten (je einer oder mehrere):
@@ -129,11 +129,13 @@ Bei jedem Intervall (und bei Änderungen von Sonne/Sensoren/Rollladen):
    Fassadenfenster, Sonnenhöhe zwischen min/max und – falls Sensoren gesetzt – Bewölkung
    **unter** der Schwelle (klarer Himmel) sowie Temperatur über Schwelle →
    Beschattungs-Position (Schlafraum: komplett zu). Ende der Bedingung → wieder „offen".
-4. **Manuell**: Bedienst du den Rollladen von Hand, pausiert die Beschattung – bis die
-   eingestellte **Zeitspanne** abgelaufen ist (Standard 60 Min, relativ – keine Uhrzeit),
-   spätestens beim nächsten Auf-/Zu-Ereignis oder Tageswechsel. Danach greifen die
-   Beschattungs-Regeln wieder (z. B.: morgens aufstehen, hochfahren → später beschattet es
-   automatisch wieder). Auto-Auf/Auto-Zu laufen unabhängig davon weiter.
+4. **Manuell**: Bedienst du den Rollladen von Hand, gilt das nur für das **aktuelle
+   Programm** – die Übersteuerung wird freigegeben, sobald ein neues Programm beginnt (die
+   Beschattungslage wechselt), spätestens beim nächsten Auf-/Zu-Ereignis oder Tageswechsel.
+   So beschattet es nach „morgens hochfahren" mittags wieder von selbst, und „Beschattung
+   übersteuert" verhindert das abendliche Zufahren nicht. Eine **Hysterese** hält die
+   Beschattungs-Entscheidung an der Schwelle stabil (kein Flackern). Optional zusätzlich ein
+   Zeit-Limit (Standard 0 = aus).
 
 > **Warum beschattet es (nicht)?** Der Status-Sensor liefert das Attribut
 > `shade_block_reason` (`ok`, `elevation_high`, `elevation_low`, `azimuth_out`,
