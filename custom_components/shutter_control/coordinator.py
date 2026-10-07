@@ -66,6 +66,7 @@ from .const import (
     CONF_ROOM_TYPE,
     CONF_SHADE_ENABLED,
     CONF_SHADE_KEEP_UNTIL_DOWN,
+    CONF_SHADE_END_DELAY,
     CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
@@ -95,6 +96,7 @@ from .const import (
     DEFAULT_OPEN_POSITION,
     DEFAULT_ROOM_TYPE,
     DEFAULT_SHADE_KEEP_UNTIL_DOWN,
+    DEFAULT_SHADE_END_DELAY,
     DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
@@ -214,6 +216,9 @@ class CoverState:
     # Hysteresis state: the debounced "should shade" condition (avoids flicker
     # at the elevation/azimuth/cloud boundary).
     shade_condition: bool = False
+    # Since when the shading condition has been off while still shading (for the
+    # optional end delay); None while the condition holds.
+    shade_off_since: datetime | None = None
 
     # Set on the first evaluation so we don't replay already-passed up/down
     # events (and move shutters) right after a Home Assistant restart.
@@ -721,6 +726,8 @@ class ShutterControlManager:
             cover.shade_condition = False
             reason = "outside_day_window" if not in_day_window else "shade_disabled"
         cover.shade_reason = reason
+        if should_shade or not cover.shading_active:
+            cover.shade_off_since = None
 
         # Manual override applies only to the CURRENT program: it holds the manual
         # position until the shading condition changes (a new program begins),
@@ -772,9 +779,22 @@ class ShutterControlManager:
                 # Keep the shade position until the evening down event closes it
                 # fully (don't reopen when the sun moves on).
                 cover.mode = MODE_SHADING
-            else:
-                cover.shading_active = False
-                await self._apply(cover, open_pos, MODE_OPEN)
+                return
+            # Optional end delay: only reopen once the condition has stayed off
+            # for the configured time (a passing cloud doesn't raise the shutter).
+            delay_min = float(
+                self.entry.options.get(CONF_SHADE_END_DELAY, DEFAULT_SHADE_END_DELAY)
+                or 0
+            )
+            if delay_min > 0:
+                if cover.shade_off_since is None:
+                    cover.shade_off_since = now
+                if now - cover.shade_off_since < timedelta(minutes=delay_min):
+                    cover.mode = MODE_SHADING
+                    return
+            cover.shading_active = False
+            cover.shade_off_since = None
+            await self._apply(cover, open_pos, MODE_OPEN)
         elif not cover.shading_active and cover.mode not in (MODE_OPEN,):
             cover.mode = MODE_IDLE
 
@@ -900,7 +920,11 @@ class ShutterControlManager:
             and not cover.shading_active
         ):
             candidates.append((cover.shade_start, "shading"))
-        if cover.shading_active and cover.shade_end and cover.shade_end > now:
+        pending_end = self._pending_shade_end(cover)
+        if pending_end is not None:
+            # Condition already off: reopening is scheduled after the end delay.
+            candidates.append((pending_end, "shading_end"))
+        elif cover.shading_active and cover.shade_end and cover.shade_end > now:
             candidates.append((cover.shade_end, "shading_end"))
 
         candidates = [(t, lab) for (t, lab) in candidates if t and t > now]
@@ -910,6 +934,21 @@ class ShutterControlManager:
         else:
             cover.next_action_at = None
             cover.next_action = None
+
+    def _pending_shade_end(self, cover: CoverState) -> datetime | None:
+        """When a running shading will end because of the end delay (or None)."""
+        if not cover.shading_active or cover.shade_off_since is None:
+            return None
+        if self.entry.options.get(
+            CONF_SHADE_KEEP_UNTIL_DOWN, DEFAULT_SHADE_KEEP_UNTIL_DOWN
+        ):
+            return None
+        delay_min = float(
+            self.entry.options.get(CONF_SHADE_END_DELAY, DEFAULT_SHADE_END_DELAY) or 0
+        )
+        if delay_min <= 0:
+            return None
+        return cover.shade_off_since + timedelta(minutes=delay_min)
 
     def _predict_shading(
         self,
