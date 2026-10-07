@@ -23,6 +23,7 @@ CONF_UPDATE_INTERVAL = "update_interval"
 CONF_SHADE_ONLY_LOWER = "shade_only_lower"
 CONF_SHADE_KEEP_UNTIL_DOWN = "shade_keep_until_down"
 CONF_SHADE_END_DELAY = "shade_end_delay"
+CONF_SHADE_START_DELAY = "shade_start_delay"
 CONF_MANUAL_TIMEOUT = "manual_timeout"
 CONF_DOOR_DELAY = "door_delay"
 
@@ -38,6 +39,9 @@ DEFAULT_SHADE_KEEP_UNTIL_DOWN = False
 # Reopen only after the shading condition has been off continuously for this
 # many minutes (0 = reopen immediately). Ignored while keep-until-down is on.
 DEFAULT_SHADE_END_DELAY = 0
+# Lower for shading only after the condition has held continuously for this many
+# minutes (0 = lower immediately).
+DEFAULT_SHADE_START_DELAY = 0
 # Optional extra cap: manual override also expires this many minutes after the
 # manual move. 0 = off (primary behaviour is program-based: the override is
 # released when the shading condition changes / at the next up/down / new day).

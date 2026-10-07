@@ -67,6 +67,7 @@ from .const import (
     CONF_SHADE_ENABLED,
     CONF_SHADE_KEEP_UNTIL_DOWN,
     CONF_SHADE_END_DELAY,
+    CONF_SHADE_START_DELAY,
     CONF_SHADE_ONLY_LOWER,
     CONF_SHADE_POSITION,
     CONF_SUN_ENTITY,
@@ -97,6 +98,7 @@ from .const import (
     DEFAULT_ROOM_TYPE,
     DEFAULT_SHADE_KEEP_UNTIL_DOWN,
     DEFAULT_SHADE_END_DELAY,
+    DEFAULT_SHADE_START_DELAY,
     DEFAULT_SHADE_ONLY_LOWER,
     DEFAULT_SHADE_POSITION,
     DEFAULT_SUN_ENTITY,
@@ -219,6 +221,9 @@ class CoverState:
     # Since when the shading condition has been off while still shading (for the
     # optional end delay); None while the condition holds.
     shade_off_since: datetime | None = None
+    # Since when the shading condition has held while not yet shading (for the
+    # optional start delay); None otherwise.
+    shade_on_since: datetime | None = None
 
     # Set on the first evaluation so we don't replay already-passed up/down
     # events (and move shutters) right after a Home Assistant restart.
@@ -728,6 +733,8 @@ class ShutterControlManager:
         cover.shade_reason = reason
         if should_shade or not cover.shading_active:
             cover.shade_off_since = None
+        if not should_shade or cover.shading_active:
+            cover.shade_on_since = None
 
         # Manual override applies only to the CURRENT program: it holds the manual
         # position until the shading condition changes (a new program begins),
@@ -750,6 +757,21 @@ class ShutterControlManager:
             return
 
         if should_shade and not cover.shading_active:
+            # Optional start delay: only lower once the condition has held for the
+            # configured time (a short sunny spell doesn't lower the shutter).
+            start_min = float(
+                self.entry.options.get(
+                    CONF_SHADE_START_DELAY, DEFAULT_SHADE_START_DELAY
+                )
+                or 0
+            )
+            if start_min > 0:
+                if cover.shade_on_since is None:
+                    cover.shade_on_since = now
+                if now - cover.shade_on_since < timedelta(minutes=start_min):
+                    if cover.mode not in (MODE_OPEN,):
+                        cover.mode = MODE_IDLE
+                    return
             shade_pos = (
                 closed_pos
                 if room_type == ROOM_SLEEPING
@@ -920,6 +942,11 @@ class ShutterControlManager:
             and not cover.shading_active
         ):
             candidates.append((cover.shade_start, "shading"))
+        pending_start = self._pending_shade_start(cover)
+        if pending_start is not None:
+            # Condition already on: lowering is scheduled after the start delay.
+            candidates = [c for c in candidates if c[1] != "shading"]
+            candidates.append((pending_start, "shading"))
         pending_end = self._pending_shade_end(cover)
         if pending_end is not None:
             # Condition already off: reopening is scheduled after the end delay.
@@ -934,6 +961,18 @@ class ShutterControlManager:
         else:
             cover.next_action_at = None
             cover.next_action = None
+
+    def _pending_shade_start(self, cover: CoverState) -> datetime | None:
+        """When shading will start because of the start delay (or None)."""
+        if cover.shading_active or cover.shade_on_since is None:
+            return None
+        start_min = float(
+            self.entry.options.get(CONF_SHADE_START_DELAY, DEFAULT_SHADE_START_DELAY)
+            or 0
+        )
+        if start_min <= 0:
+            return None
+        return cover.shade_on_since + timedelta(minutes=start_min)
 
     def _pending_shade_end(self, cover: CoverState) -> datetime | None:
         """When a running shading will end because of the end delay (or None)."""
